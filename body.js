@@ -186,5 +186,5 @@
       if (bf.v !== null) out.push('% жира по формуле ВМС США ≈ ' + u.num(bf.v) + '% (грубая оценка ±3–4%)');
       return out.length ? 'Замеры: ' + out.join(', ') + '.' : '';
     } };
-  window.V9Photos = { mount: mount, all: pAll, info: photosInfo, get: pGet };
+  window.V9Photos = { mount: mount, all: pAll, info: photosInfo, get: pGet, clear: function () { return tx('readwrite', function (s) { s.clear(); }).catch(function () { /* no idb */ }); } };
 })();

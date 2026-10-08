@@ -45,13 +45,28 @@
     return s;
   }
   var S = load();
-  function save() {
-    try {
-      S.msgs = S.msgs.slice(-60);
-      var keep = {}; S.msgs.forEach(function (m) { if (m.photo && S.photos[m.photo]) keep[m.photo] = S.photos[m.photo]; }); S.photos = keep;
-      localStorage.setItem(KEY, JSON.stringify(S));
-    } catch (e) { /* quota — ignore */ }
+  // v9.4: chat history is capped at 30 messages; photo previews (base64 thumbs) are dropped once the items were added
+  // to the diary, and only the last 3 photo cards keep a preview — so the chat can't crowd out the real records.
+  var MAX_MSGS = 30, MAX_THUMBS = 3;
+  function compact() {
+    S.msgs = S.msgs.slice(-MAX_MSGS);
+    var keep = {}; S.msgs.forEach(function (m) { if (m.photo && S.photos[m.photo]) keep[m.photo] = S.photos[m.photo]; }); S.photos = keep;
+    var ids = Object.keys(S.photos), withThumb = 0;
+    for (var i = S.msgs.length - 1; i >= 0; i--) {
+      var id = S.msgs[i].photo, P = id && S.photos[id]; if (!P || !P.thumb || P.__seen) continue; P.__seen = 1;
+      if (P.added || withThumb >= MAX_THUMBS) delete P.thumb; else withThumb++;
+    }
+    ids.forEach(function (id) { delete S.photos[id].__seen; });
   }
+  function save() {
+    compact();
+    try { localStorage.setItem(KEY, JSON.stringify(S)); }
+    catch (e) {   // still too big (the storage guard already freed what it could) → keep only the last few messages
+      try { S.msgs = S.msgs.slice(-6); compact(); localStorage.setItem(KEY, JSON.stringify(S)); } catch (e2) { /* give up silently: chat is not core data */ }
+    }
+  }
+  function trimHistory(n) { S.msgs = n ? S.msgs.slice(-n) : []; Object.keys(S.photos).forEach(function (id) { delete S.photos[id].thumb; }); compact(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* */ } }
+  function wipeHistory() { S.msgs = []; S.photos = {}; S.ctx = {}; }
   // optional build-time key (ai-config.js). It is only obfuscated: anyone can extract it from the site files.
   function buildKey() {
     var c = window.HT_AI_CFG; if (!c || !c.k) return null;
@@ -194,7 +209,7 @@
     if (!f) return noData('вес', 'Для прогноза взвешивайся 2–3 раза в неделю — нужен хотя бы 4 замера за 2 недели.');
     if (f.few) return 'Для прогноза нужно хотя бы 4 замера веса за 2–4 недели (сейчас ' + f.n + ').';
     var line = I.forecastLine();
-    return line + '. ' + (f.date ? '' : f.away ? 'Вес сейчас движется от цели, поэтому дату не называю. ' : f.noisy ? 'Замеры сильно скачут — дату не называю. ' : !f.goal ? 'Поставь цель по весу в Профиле — назову примерную дату. ' : '') + 'Это линейный тренд за 4 недели (R² ' + num(f.r2, 2) + '), ориентир, а не обещание.';
+    return line + '. ' + (f.date ? '' : f.away ? 'Вес сейчас движется от цели, поэтому дату не называю. ' : f.noisy ? 'Замеры сильно скачут — дату не называю. ' : !f.goal ? 'Поставь цель по весу в Профиле — назову примерную дату. ' : '') + 'Расчёт ' + I.basisText(f) + ' — ориентир, а не обещание.';
   }
   function ansMeasure() {
     var B = window.V9Body; if (!B) return 'Замеры появятся в следующей версии.';
@@ -1227,7 +1242,7 @@
   var busy = false, showSettings = false, streamText = null, keyInfo = null;
   function gearSvg() { return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'; }
   function msgHtml(m) {
-    var body = m.photo ? (m.r === 'u' ? '<img class="ai-photo-thumb" src="' + (S.photos[m.photo] && S.photos[m.photo].thumb || '') + '" alt="Фото еды">' + (m.h ? '<div>' + m.h + '</div>' : '') : photoCard(m.photo, S.photos[m.photo])) : m.h;
+    var body = m.photo ? (m.r === 'u' ? (S.photos[m.photo] && S.photos[m.photo].thumb ? '<img class="ai-photo-thumb" src="' + S.photos[m.photo].thumb + '" alt="Фото еды">' : '<span class="muted small">📷 Фото еды</span>') + (m.h ? '<div>' + m.h + '</div>' : '') : photoCard(m.photo, S.photos[m.photo])) : m.h;
     return '<div class="ai-msg ' + (m.r === 'u' ? 'me' : 'bot') + '">' + (m.r === 'u' ? '' : '<span class="ai-av" aria-hidden="true">✦</span>') +
       '<div class="ai-bubble">' + body + (m.src ? '<small class="ai-src">' + esc(m.src) + '</small>' : '') + '</div></div>';
   }
@@ -1453,7 +1468,7 @@
   });
 
   window.AIModule = {
-    render: render, answer: answer, answerFull: answerFull, ask: ask, _summary: dataSummary, _system: systemPrompt,
+    render: render, answer: answer, answerFull: answerFull, ask: ask, _summary: dataSummary, _system: systemPrompt, trim: trimHistory, wipe: wipeHistory,
     _parsePhoto: parsePhotoJSON, _match: matchPhotoItems, _search: function (q) { var pq = parseFoodQ(norm(q)); return searchDB(pq.words).list.slice(0, 5).map(function (f) { return f.ru; }); },
     cloudOn: cloudOn, _badReply: badReply, _blocked: blockedModel, _chain: function () { return chainFor(S.model || DEFAULT_MODEL, CHAT_MODELS); }, reset: function () { S.ctx = {}; }
   };

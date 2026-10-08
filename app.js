@@ -427,7 +427,7 @@
   function sanitizeSettings(s) {
     var d = defaultSettings();
     if (!s || typeof s !== 'object') return d;
-    if (s.lang === 'ru' || s.lang === 'en') d.lang = s.lang;
+    d.lang = 'ru';   // v9.4: the app is Russian-only (an old stored 'en' is ignored)
     var hgt = Number(s.height);
     if (s.height !== null && s.height !== undefined && isFinite(hgt) && hgt >= 80 && hgt <= 250) d.height = hgt;
     var age = Number(s.age);
@@ -1544,19 +1544,35 @@
     render({ scroll: true });
     toast(added ? t('data.demoAdded', { n: fmtNum(added, 0) }) : t('data.demoNone'));
   }
+  // v9.4: «Удалить все данные» wipes every record store (incl. v9 stores and photos) but keeps the profile,
+  // goals, Pro key / trial, personal ID and the AI connection settings. The page reloads so no module keeps stale state.
+  var CLEAR_KEYS = ['health.history.v1', 'health.sleeptimes.v1', 'health.jaw.v1', 'health.skin.v1', 'health.foodfav.v1',
+    'health.barcode.v1', 'health.measure.v1'];
   function clearAll() {
+    var extra = 0;
+    CLEAR_KEYS.forEach(function (k) { try { if (localStorage.getItem(k)) extra++; } catch (e) { /* */ } });
     var n = totalEntries() + foodCount(food) + (window.HistoryModule ? window.HistoryModule.count() : 0);
-    if (!n) { toast(t('data.nothing')); return; }
-    if (!confirm(t('data.confirmClear', { n: fmtNum(n, 0) }))) return;
+    if (!n && !extra) { toast(t('data.nothing')); return; }
+    if (!confirm(t('data.confirmClear', { n: fmtNum(n, 0) }) + ' Также удалятся время сна, челюсть, уход, избранное, штрихкоды, замеры, фото и история ИИ-чата. Профиль, цели и Про-ключ останутся.')) return;
     store.data = emptyData();
     food = {}; saveFood();
     planStore = sanitizePlanStore(null); wk.form = planStore.form;
-    try { localStorage.removeItem(PLAN_KEY); localStorage.removeItem(LEGACY_CHAT_KEY); localStorage.removeItem('health.history.v1'); } catch (e) { /* ignore */ }
-    if (window.HistoryModule) window.HistoryModule.reload();
+    try {
+      [PLAN_KEY, LEGACY_CHAT_KEY].concat(CLEAR_KEYS).forEach(function (k) { localStorage.removeItem(k); });
+      // AI: drop the chat history and photo cards, keep the connection settings (key / model / server)
+      var ai = JSON.parse(localStorage.getItem('health.ai.v1') || 'null');
+      if (ai && typeof ai === 'object') { ai.msgs = []; ai.photos = {}; ai.ctx = {}; localStorage.setItem('health.ai.v1', JSON.stringify(ai)); }
+      // v9 prefs: forget backup/weekly/measurement timestamps (settings like goals and reminders stay)
+      var p9 = JSON.parse(localStorage.getItem('health.v9') || 'null');
+      if (p9 && typeof p9 === 'object') { p9.backup = {}; p9.weekly = {}; p9.measure = {}; if (p9.remind) p9.remind.last = {}; localStorage.setItem('health.v9', JSON.stringify(p9)); }
+    } catch (e) { /* ignore */ }
     fs.day = null; fs.sel = null;
     persist();
-    render();
-    toast(t('data.cleared'));
+    if (window.AIModule && window.AIModule.wipe) window.AIModule.wipe();
+    window.__htClearing = true;   // modules must not write their in-memory state back
+    var done = function () { try { sessionStorage.setItem('ht-cleared', '1'); } catch (e) { /* */ } location.reload(); };
+    var ph = window.V9Photos && window.V9Photos.clear ? window.V9Photos.clear() : Promise.resolve();
+    ph.then(done, done);
   }
 
   // ======================================================================
@@ -1928,7 +1944,7 @@
     if (vals.some(function (v) { return v !== null && !(isFinite(v) && v >= 0); })) { toast(t('food.cInvalid')); return; }
     var p = vals[1] || 0, f = vals[2] || 0, c = vals[3] || 0;
     var kcal = vals[0] !== null ? vals[0] : p * 4 + f * 9 + c * 4;
-    if (!(kcal > 0) || kcal > 10000 || p > 1000 || f > 1000 || c > 2000) { toast(t('food.cInvalid')); return; }
+    if (!(kcal > 0 || vals[0] === 0) || kcal > 10000 || p > 1000 || f > 1000 || c > 2000) { toast(t('food.cInvalid')); return; }   // v9.4: an explicit 0 kcal is fine (water, black coffee)
     var ce = { name: name || t('food.customName'), kcal: Math.round(kcal), p: r1(p), f: r1(f), c: r1(c) };
     var fbi = $('cFib'), fbv = fbi && fbi.value.trim() !== '' ? parseInputNumber(fbi.value) : null;   // v9.2: optional fiber
     if (fbv !== null) { if (!(isFinite(fbv) && fbv >= 0 && fbv <= 300)) { toast(t('food.cInvalid')); return; } ce.fib = r1(fbv); }
@@ -2574,6 +2590,12 @@
       return entry;
     },
     toast: function (m) { toast(m); },
+    // v9.4: the ring's goals for «Сегодня» (same rule as the ring) → { ids, done: [ids], missing: [ids], food: entries today }
+    ringStatus: function () {
+      var ids = GOAL_IDS.filter(metricOn), done = [], missing = [];
+      ids.forEach(function (id) { var v = get(id, defaultKey(id)); if (v !== null && meetsGoal(id, v)) done.push(id); else missing.push(id); });
+      return { ids: ids, done: done, missing: missing, food: (food[todayKey()] || []).length, goalOf: function (id) { return goalOf(id); }, val: function (id) { return get(id, defaultKey(id)); } };
+    },
     // v8: used by history.js
     exercises: function () { return EXERCISES; }, exById: function (id) { return EX_BY_ID[id] || null; }, fmtReps: fmtReps,
     dayTitle: function (d) { var tp = TPL[d.tpl] || { f: 'fb', s: '' }; return t('wk.f.' + tp.f) + (tp.s ? ' ' + tp.s : ''); },
@@ -2793,4 +2815,5 @@
   if (window.HTPro) window.HTPro.onChange(function () { render(); });
   applyStaticI18n();
   route();
+  try { if (sessionStorage.getItem('ht-cleared')) { sessionStorage.removeItem('ht-cleared'); toast(t('data.cleared')); } } catch (e) { /* */ }
 })();

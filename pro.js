@@ -85,7 +85,7 @@
     if (!naclPromise) {
       naclPromise = new Promise(function (res, rej) {
         var s = document.createElement('script');
-        s.src = 'vendor/nacl.min.js?v=9.3';
+        s.src = 'vendor/nacl.min.js?v=9.4';
         s.onload = function () { window.nacl && window.nacl.sign ? res(window.nacl) : rej(new Error('nacl')); };
         s.onerror = function () { naclPromise = null; rej(new Error('nacl load')); };
         document.head.appendChild(s);

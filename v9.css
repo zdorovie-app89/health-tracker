@@ -143,3 +143,12 @@ a.btn.primary { color: #fff; }
 .v9-rem-s { display: block; font-size: 12px; font-weight: 600; margin-top: 2px; }
 .v9-rem-perm { margin-top: 10px; }
 #v9RemindCard .goal-row { padding: 8px 0; }
+/* v9.4 */
+#todayCards.v9-wtask .mcard[data-open="water"] .mcard-actions { display: none; }
+.v9-sec-water { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.08); font-size: 14px; }
+.v9-sec-water .muted { font-size: 12px; }
+.v9-left { margin: 4px 0 12px; padding-left: 0; list-style: none; display: grid; gap: 6px; font-size: 15px; }
+.v9-st[data-v9st="quick"] { flex-wrap: wrap; }
+.v9-st[data-v9st="quick"] label { min-width: 0; flex: 1 1 40%; }
+.v9-st[data-v9st="quick"] .btn { flex: 1 1 100%; }
+.v9-st input[type="time"] { min-width: 0; }

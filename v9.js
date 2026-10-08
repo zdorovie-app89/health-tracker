@@ -87,10 +87,12 @@
       return card('v9-t-wk', '🏋️', 'Сегодня по плану: ' + esc(p.title), (p.min ? '≈ ' + p.min + ' мин · ' : '') + p.day.items.filter(function (it) { return it.k !== 'w'; }).length + ' упражнений',
         '<button type="button" class="btn primary wide" data-v9="startwk" data-i="' + p.i + '">▶ Начать тренировку</button>');
     },
+    // v9.4: water is the single task only in the daytime while less than half the goal is drunk; otherwise it is a
+    // secondary line under the task (so mood / jaw / skincare can surface) and its buttons stay on the water card
     water: function () {
-      if (!goalOn('water')) return null;
-      var g = A().settings().goals.water, v = val('water', A().todayKey()) || 0;
-      if (!g || v >= g) return null;
+      var w = waterInfo(), hr = new Date().getHours();
+      if (!w || hr < 10 || hr >= 20 || w.v >= w.g / 2) return null;
+      var g = w.g, v = w.v;
       return card('v9-t-water', '💧', 'Вода: осталось ' + num(g - v, 0) + ' мл', 'Выпито ' + num(v, 0) + ' из ' + num(g, 0) + ' мл',
         '<div class="v9-bar"><i style="width:' + Math.round(Math.min(1, v / g) * 100) + '%"></i></div>' +
         '<div class="mcard-actions v9-water-btns"><button type="button" class="mini-btn" data-v9="water" data-v="250">+250</button><button type="button" class="mini-btn" data-v9="water" data-v="500">+500</button></div>');
@@ -101,10 +103,15 @@
       return card('v9-t-jaw', '💪', 'Челюсть: день ' + s.cur, '≈ ' + s.minutes + ' мин · серия ' + s.streak + ' ' + plural(s.streak, 'день', 'дня', 'дней'),
         '<a class="btn primary wide" href="#jaw">Начать день ' + s.cur + '</a>');
     },
+    // v9.4: morning care in the morning, evening care from 18:00 (only for users who use the skincare checklist)
     skin: function () {
       var Sk = window.SkinModule; if (!Sk) return null;
-      var s = Sk.stats(); if (!s.anyChecks || s.doneToday >= s.reqToday) return null;
-      return card('v9-t-skin', '🧴', 'Вечерний уход', 'Сегодня отмечено ' + s.doneToday + ' из ' + s.reqToday + ' шагов',
+      var s = Sk.stats(), hr = new Date().getHours(), am = hr >= 4 && hr < 12;
+      if (!s.anyChecks || (!am && hr < 18)) return null;
+      var req = am ? s.amReq : s.pmReq, done = am ? s.amDone : s.pmDone;
+      if (req === undefined) { req = s.reqToday; done = s.doneToday; }
+      if (!req || done >= req) return null;
+      return card('v9-t-skin v9-t-skin-' + (am ? 'am' : 'pm'), am ? '🌤' : '🧴', am ? 'Утренний уход' : 'Вечерний уход', 'Отмечено ' + done + ' из ' + req + ' ' + plural(req, 'шага', 'шагов', 'шагов'),
         '<a class="btn primary wide" href="#skin">Открыть уход</a>');
     },
     mood: function () {
@@ -114,13 +121,40 @@
         '<div class="mood-row v9-mood">' + em.map(function (e, i) { return '<button type="button" data-v9="mood" data-v="' + (i + 1) + '">' + e + '</button>'; }).join('') + '</div>');
     }
   };
+  function waterInfo() {
+    if (!goalOn('water')) return null;
+    var g = A().settings().goals.water, v = val('water', A().todayKey()) || 0;
+    return g && v < g ? { g: g, v: v } : null;
+  }
+  function withWaterLine(html) {
+    var w = waterInfo(); if (!w) return html;
+    var line = '<p class="v9-sec-water"><span aria-hidden="true">💧</span> Вода: ещё ' + num(w.g - w.v, 0) + ' мл до цели <span class="muted">— кнопки на карточке «Вода» ниже</span></p>';
+    return html.replace(/<\/section>$/, line + '</section>');
+  }
+  // v9.4: «всё отмечено» only when every goal of the ring is met AND food was logged today; otherwise list what's left
+  function restCard() {
+    var rs = A().ringStatus ? A().ringStatus() : { missing: [], food: 1 }, left = [];
+    var g = A().settings().goals;
+    rs.missing.forEach(function (id) {
+      var v = rs.val(id);
+      if (id === 'sleep') left.push('🌙 сон: ' + (v === null ? 'прошлая ночь не записана' : num(v) + ' из ' + num(g.sleep) + ' ч'));
+      else if (id === 'water') left.push('💧 вода: ещё ' + num(g.water - (v || 0), 0) + ' мл');
+      else if (id === 'steps') left.push('👟 шаги: ' + (v === null ? 'не записаны' : 'ещё ' + num(g.steps - v, 0)));
+      else if (id === 'workout') left.push('🏋️ тренировка: ' + (v === null ? 'не записана' : num(v, 0) + ' из ' + num(g.workout, 0) + ' мин'));
+    });
+    if (!rs.food) left.push('🍽 еда сегодня не записана');
+    if (!left.length) return { id: 'done', html: card('v9-t-done', '✨', 'На сегодня всё отмечено', 'Все цели выполнены и еда записана. Загляни в «Тренды» или «Итоги недели».', '<a class="btn wide" href="#week">📊 Итоги недели</a>') };
+    return { id: 'left', html: card('v9-t-left', '📝', 'Осталось на сегодня', '',
+      '<ul class="v9-left">' + left.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' +
+      (!rs.food ? '<a class="btn wide" href="#food">🍽 Записать еду</a>' : '')) };
+  }
   function nextTask() {
     var hr = new Date().getHours(), order;
-    if (hr >= 4 && hr < 12) order = ['sleep', 'workout', 'water', 'mood'];
-    else if (hr >= 12 && hr < 18) order = ['workout', 'water', 'sleep', 'mood'];
-    else order = ['workout', 'jaw', 'skin', 'water', 'mood', 'sleep'];
-    for (var i = 0; i < order.length; i++) { var h = TASKS[order[i]](); if (h) return { id: order[i], html: h }; }
-    return { id: 'done', html: card('v9-t-done', '✨', 'На сегодня всё отмечено', 'Отличная работа. Загляни в «Тренды» или «Итоги недели».', '<a class="btn wide" href="#week">📊 Итоги недели</a>') };
+    if (hr >= 4 && hr < 12) order = ['sleep', 'workout', 'skin', 'mood', 'water', 'jaw'];
+    else if (hr >= 12 && hr < 18) order = ['workout', 'water', 'jaw', 'mood', 'sleep'];
+    else order = ['workout', 'jaw', 'skin', 'mood', 'water', 'sleep'];
+    for (var i = 0; i < order.length; i++) { var h = TASKS[order[i]](); if (h) return { id: order[i], html: order[i] === 'water' ? h : withWaterLine(h) }; }
+    return restCard();
   }
 
   /* ---------------- quiet suggestion cards (one at a time) ---------------- */
@@ -166,7 +200,9 @@
   }
   function renderTodayTop() {
     var box = document.getElementById('v9Top'); if (!box || !A()) return;
-    box.innerHTML = nextTask().html + suggestion();
+    var nt = nextTask();
+    box.innerHTML = nt.html + suggestion();
+    var tc = document.getElementById('todayCards'); if (tc) tc.classList.toggle('v9-wtask', nt.id === 'water');   // one set of +250/+500
     // promo cards disappear after the section was visited once
     document.querySelectorAll('#view-today [data-promo]').forEach(function (a) { a.hidden = !!(P.promosOff || P.seen[a.getAttribute('data-promo')]); });
     var any = Array.prototype.some.call(document.querySelectorAll('#view-today [data-promo]'), function (a) { return !a.hidden; });
@@ -251,7 +287,7 @@
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-v9]'); if (!b || !A()) return;
     var act = b.getAttribute('data-v9'), v = Number(b.getAttribute('data-v'));
-    if (act === 'sleep') { A().setMetric('sleep', key(addD(today0(), -1)), v); A().toast('🌙 Сон: ' + num(v) + ' ч'); A().rerender(); }
+    if (act === 'sleep') { if (window.V9Sleep && window.V9Sleep.quickHours) window.V9Sleep.quickHours(v); else { A().setMetric('sleep', key(addD(today0(), -1)), v); A().toast('🌙 Сон: ' + num(v) + ' ч'); A().rerender(); } }
     else if (act === 'water') { var k = A().todayKey(), nv = Math.min(10000, (val('water', k) || 0) + v); A().setMetric('water', k, nv); A().toast('💧 ' + num(nv, 0) + ' мл'); A().rerender(); }
     else if (act === 'mood') { A().setMetric('mood', A().todayKey(), v); A().rerender(); }
     else if (act === 'startwk') { if (window.HistoryModule) window.HistoryModule.startPlanDay(Number(b.getAttribute('data-i'))); }

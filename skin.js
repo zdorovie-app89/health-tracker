@@ -318,12 +318,15 @@ var SKIN_PRESET = null;
   /* v7: numbers for the AI assistant */
   function stats() {
     var now = new Date(), req = required(now), c = S.checks[dkey(now)] || {}, last7 = 0, d = new Date();
+    var part = function (which) { if (!S.result && pro()) return []; var r = routineFor(S.result), wd = now.getDay(); return r[which].filter(function (s) { return !s.opt && stepToday(s, wd); }); };
     d.setHours(12, 0, 0, 0);
     for (var i = 0; i < 7; i++) { if (dayDone(d)) last7++; d.setDate(d.getDate() - 1); }
     var r = S.result;
     return {
       type: r ? r.type : null, typeName: r ? TYPES[r.type].name : '', acne: !!(r && r.acne),
       doneToday: req.filter(function (s) { return c[s.id]; }).length, reqToday: req.length, streak: streak(), last7: last7,
+      amReq: part('am').length, amDone: part('am').filter(function (s) { return c[s.id]; }).length,
+      pmReq: part('pm').length, pmDone: part('pm').filter(function (s) { return c[s.id]; }).length,
       anyChecks: Object.keys(S.checks).some(function (k) { return Object.keys(S.checks[k] || {}).length > 0; }), basic: !pro() || !r
     };
   }

@@ -37,6 +37,12 @@
     var u = U();
     return Math.abs(f.perWeek) < 0.05 ? 'вес держится ровно (±0 кг в неделю)' : 'так ты идёшь примерно на ' + u.signed(Math.round(f.perWeek * 10) / 10 || (f.perWeek > 0 ? 0.1 : -0.1)) + ' кг в неделю';
   }
+  // v9.4: no R² for users — «по 6 замерам за 18 дней, тренд неровный»
+  function basisText(f) {
+    var u = U();
+    return 'по ' + f.n + ' ' + u.plural(f.n, 'замеру', 'замерам', 'замерам') + ' за ' + f.span + ' ' + u.plural(f.span, 'день', 'дня', 'дней') +
+      (f.r2 < 0.4 ? ', тренд неровный' : f.r2 < 0.7 ? ', тренд не очень ровный' : ', тренд ровный');
+  }
   function forecastLine() {
     if (window.V9 && !window.V9.goalOn('weight')) return '';
     var f = forecast(), u = U(); if (!f) return '';
@@ -55,7 +61,7 @@
       var why = f.reached ? 'Цель ' + u.num(f.goal) + ' кг уже достигнута.' : f.date ? u.num(f.goal) + ' кг — около <b>' + u.fmtD(f.date, { day: 'numeric', month: 'long', year: 'numeric' }) + '</b>, если темп сохранится.' :
         f.away ? 'Сейчас вес движется от цели ' + u.num(f.goal) + ' кг — дату не называю.' : f.tooFar ? 'При таком темпе до цели больше года — дату не называю.' :
         f.noisy ? 'Замеры сильно скачут, тренд неустойчивый — дату не называю.' : f.goal ? '' : 'Поставь цель по весу в Профиле — покажу примерную дату.';
-      body = '<p class="v9-fc-big">' + rateText(f).replace(/^так/, 'Так') + '</p><p class="muted small">' + why + ' По ' + f.n + ' замерам за ' + f.span + ' дн., линейный тренд (R² ' + u.num(f.r2, 2) + '). Это ориентир, а не обещание.</p>';
+      body = '<p class="v9-fc-big">' + rateText(f).replace(/^так/, 'Так') + '</p><p class="muted small">' + why + ' ' + basisText(f).replace(/^по/, 'По') + '. Это ориентир, а не обещание.</p>';
     }
     return '<section class="card v9-forecast"><div class="card-head"><h2>⚖️ Прогноз веса</h2></div>' + body + '</section>';
   }
@@ -82,7 +88,7 @@
       if (s < 6) short.push(m); else if (s >= 7 && s <= 9) norm.push(m);
     });
     var r = { id: 'mood', icon: '🙂', title: 'Сон и настроение на следующий день' };
-    if (short.length < 2 || norm.length < 2) { r.st = 'few'; r.text = 'Мало пар «сон → настроение»: после сна меньше 6 ч — ' + short.length + ', после 7–9 ч — ' + norm.length + ' (нужно хотя бы по 2).'; return r; }
+    if (short.length < 4 || norm.length < 4) { r.st = 'few'; r.text = 'Мало пар «сон → настроение»: после сна меньше 6 ч — ' + short.length + ', после 7–9 ч — ' + norm.length + ' (нужно хотя бы по 4).'; return r; }
     var as = u.avg(short), an = u.avg(norm), d = an - as;
     r.vals = { short: as, norm: an, nShort: short.length, nNorm: norm.length };
     if (Math.abs(d) < 0.3) { r.st = 'none'; r.text = 'Заметной связи нет: после сна меньше 6 ч настроение ' + fmtAvg(as) + ', после 7–9 ч — ' + fmtAvg(an) + ' из 5.'; return r; }
@@ -140,7 +146,7 @@
       if (s < 6) short.push(trainedOn(k)); else if (s >= 7) norm.push(trainedOn(k));
     });
     var r = { id: 'wk', icon: '🏋️', title: 'Тренировки после короткого сна' };
-    if (short.length < 2 || norm.length < 2) { r.st = 'few'; r.text = 'Мало дней: после сна меньше 6 ч — ' + short.length + ', после 7+ ч — ' + norm.length + ' (нужно хотя бы по 2).'; return r; }
+    if (short.length < 4 || norm.length < 4) { r.st = 'few'; r.text = 'Мало дней: после сна меньше 6 ч — ' + short.length + ', после 7+ ч — ' + norm.length + ' (нужно хотя бы по 4).'; return r; }
     var ns = short.filter(Boolean).length, nn = norm.filter(Boolean).length, rs = ns / short.length, rn = nn / norm.length;
     r.vals = { short: rs, norm: rn };
     var line = 'После сна меньше 6 ч ты тренировался в <b>' + ns + ' из ' + short.length + '</b> дней (' + Math.round(rs * 100) + '%), после 7+ ч — в <b>' + nn + ' из ' + norm.length + '</b> (' + Math.round(rn * 100) + '%).';
@@ -174,7 +180,7 @@
   });
 
   window.V9Insights = {
-    forecast: forecast, forecastLine: forecastLine, observations: observations, dataDays: dataDays,
+    forecast: forecast, forecastLine: forecastLine, basisText: basisText, observations: observations, dataDays: dataDays,
     weekHtml: function () { return forecastHtml() + obsHtml(); },
     // plain text for the AI assistant
     text: function () {

@@ -42,12 +42,27 @@
   function regText(r) { return r && r.sd !== null ? 'Регулярность: подъём ±' + r.sd + ' мин (' + regWord(r.sd) + ', ' + r.n + ' ночей)' : ''; }
 
   /* ---------- Today: quick input in the «Сколько спал?» card ---------- */
+  // v9.4: the «Встал» field defaults to the usual wake time (or «now», rounded to 5 min, in the morning)
+  function defWake() {
+    var ks = Object.keys(S).sort(); if (ks.length) return S[ks[ks.length - 1]].w;
+    var d = new Date(), h = d.getHours(); if (h < 4 || h >= 12) return '07:30';
+    var m = Math.round((h * 60 + d.getMinutes()) / 5) * 5; return pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+  }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function minusHours(w, h) { var m = ((toMin(w) - Math.round(h * 60)) % 1440 + 1440) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
+  // a chip «7,5 ч»: wake time from the field (or default) → bedtime = wake − hours; both are saved, so regularity fills
+  function quickHours(h) {
+    var wi = document.getElementById('v9qWake'), w = wi && TRX.test(wi.value) ? wi.value : defWake(), b = minusHours(w, h);
+    var k = U().key(U().addD(U().today0(), -1));
+    put(k, b, w); A().setMetric('sleep', k, h);
+    A().toast('🌙 Сон: ' + hm(h * 60) + ' (' + b + ' → ' + w + ')'); A().rerender();
+  }
   function quickHtml() {
-    var t = lastTimes();
+    var t = { b: lastTimes().b, w: defWake() };
     return '<div class="v9-st" data-v9st="quick"><label><span>Лёг</span><input type="time" id="v9qBed" value="' + t.b + '"></label>' +
       '<label><span>Встал</span><input type="time" id="v9qWake" value="' + t.w + '"></label>' +
       '<button type="button" class="btn primary" data-v9st="save-quick">Сохранить</button></div>' +
-      '<p class="muted small v9-st-dur" id="v9qDur">' + durLine(t.b, t.w) + '</p><p class="muted small v9-st-or">или просто часы:</p>';
+      '<p class="muted small v9-st-dur" id="v9qDur">' + durLine(t.b, t.w) + '</p><p class="muted small v9-st-or">или сколько спал — время подъёма возьму из поля «Встал»:</p>';
   }
   function durLine(b, w) { var m = dur(b, w); return m ? 'Получается ' + hm(m) : 'Проверь время'; }
 
@@ -121,7 +136,7 @@
     imp: function (o) { var c = clean(o); Object.keys(c).forEach(function (k) { if (!S[k]) S[k] = c[k]; }); save(); }
   });
   window.V9Sleep = {
-    get: get, all: function () { return S; }, dur: dur, hm: hm, quickHtml: quickHtml, regularity: regularity, regText: regText, regWord: regWord,
+    get: get, all: function () { return S; }, dur: dur, quickHours: quickHours, defWake: defWake, reset: function () { S = {}; }, hm: hm, quickHtml: quickHtml, regularity: regularity, regText: regText, regWord: regWord,
     onSheet: onSheet, onSave: onSave, onClear: onClear, QN: QN,
     line: function (k) { var e = S[k]; return e ? e.b + '–' + e.w + (e.q ? ' ' + QE[e.q] : '') : ''; }
   };

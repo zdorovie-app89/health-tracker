@@ -1,11 +1,11 @@
 /* Здоровье v9.2 — быстрый ввод еды: «Повторить вчера», избранное (★), недавние в одно касание, штрихкод.
- * Штрихкод: камера через BarcodeDetector (Chrome на Android и др.), иначе — ввод цифр вручную.
- * Поиск — Open Food Facts (world.openfoodfacts.org), ответ кешируется на устройстве; без сети — ввод КБЖУ вручную.
+ * Штрихкод: камера через BarcodeDetector (Chrome на Android и др.), иначе — фото упаковки (vendor/zxing.min.js, v9.4) или ввод цифр.
+ * Поиск — Open Food Facts (world.openfoodfacts.org, запасной — ru.openfoodfacts.org), ответ кешируется на устройстве; без сети — ввод КБЖУ вручную.
  * Storage: 'health.foodfav.v1' -> [{ id, name, fid?, g?, kcal, p, f, c, fib? }]
  *          'health.barcode.v1' -> { '<code>': { n, k, p, f, c, fib?, por?, src: 'off'|'me', t } } (на 100 г) */
 (function () {
   'use strict';
-  var FKEY = 'health.foodfav.v1', BKEY = 'health.barcode.v1', OFF = 'https://world.openfoodfacts.org/api/v2/product/';
+  var FKEY = 'health.foodfav.v1', BKEY = 'health.barcode.v1', OFF = 'https://world.openfoodfacts.org/api/v2/product/', OFF_RU = 'https://ru.openfoodfacts.org/api/v2/product/';
   function A() { return window.HTApp; }
   function U() { return window.V9.util; }
   function rd(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || 'null'); return v === null ? d : v; } catch (e) { return d; } }
@@ -79,7 +79,7 @@
 
   /* ---------- barcode ---------- */
   var B = { open: false, mode: 'manual', code: '', prod: null, msg: '', stream: null, timer: null, det: null };
-  function hasDetector() { return 'BarcodeDetector' in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia; }
+  function hasDetector() { return typeof window.BarcodeDetector === 'function' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia; }
   function eanOk(c) {
     if (!/^\d{8}$|^\d{12,14}$/.test(c)) return /^\d{6,14}$/.test(c);
     var d = c.split('').map(Number), chk = d.pop(), s = 0;
@@ -113,6 +113,55 @@
       }, 350);
     }).catch(function () { stopCam(); B.mode = 'manual'; B.msg = 'Камера недоступна — введи цифры под штрихкодом.'; paint(); });
   }
+  /* v9.4: barcode from a photo (iPhone and other browsers without BarcodeDetector): vendor/zxing.min.js is loaded
+   * only when needed (the service worker keeps it for offline use), the photo never leaves the device. */
+  var zxP = null;
+  function loadZx() {
+    if (window.ZXing && window.ZXing.MultiFormatOneDReader) return Promise.resolve(window.ZXing);
+    if (!zxP) zxP = new Promise(function (res, rej) {
+      var s = document.createElement('script'); s.src = 'vendor/zxing.min.js?v=9.4'; s.async = true;
+      s.onload = function () { window.ZXing && window.ZXing.MultiFormatOneDReader ? res(window.ZXing) : rej(new Error('zxing')); };
+      s.onerror = function () { zxP = null; rej(new Error('zxing load')); };
+      document.head.appendChild(s);
+    });
+    return zxP;
+  }
+  function imgFromFile(file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () { res({ img: img, url: url }); }; img.onerror = function () { URL.revokeObjectURL(url); rej(new Error('img')); };
+      img.src = url;
+    });
+  }
+  function decodeImage(Z, img) {
+    var hints = new Map();
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E]);
+    hints.set(Z.DecodeHintType.TRY_HARDER, true);
+    var reader = new Z.MultiFormatOneDReader(hints);   // 1D only (EAN/UPC): no QR readers, no console noise
+    var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+    var tries = [[1400, 0], [900, 0], [1400, 90], [2000, 0], [600, 0]];
+    for (var i = 0; i < tries.length; i++) {
+      var max = tries[i][0], rot = tries[i][1], sc = Math.min(1, max / Math.max(W, H)), w = Math.round(W * sc), h = Math.round(H * sc);
+      var cv = document.createElement('canvas'), cw = rot ? h : w, ch = rot ? w : h; cv.width = cw; cv.height = ch;
+      var x = cv.getContext('2d'); if (rot) { x.translate(cw / 2, ch / 2); x.rotate(rot * Math.PI / 180); x.drawImage(img, -w / 2, -h / 2, w, h); } else x.drawImage(img, 0, 0, w, h);
+      var d = x.getImageData(0, 0, cw, ch).data, lum = new Uint8ClampedArray(cw * ch);
+      for (var j = 0, k = 0; j < lum.length; j++, k += 4) lum[j] = (d[k] * 299 + d[k + 1] * 587 + d[k + 2] * 114) / 1000;
+      try {
+        var r = reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.RGBLuminanceSource(lum, cw, ch))), hints);
+        var txt = r && String(r.getText()).replace(/\D/g, ''); if (txt) return txt;
+      } catch (e) { /* not found at this size → next try */ }
+      reader.reset();
+    }
+    return null;
+  }
+  function decodePhoto(file) {
+    B.mode = 'decoding'; B.msg = ''; paint();
+    Promise.all([loadZx(), imgFromFile(file)]).then(function (r) {
+      var code = null; try { code = decodeImage(r[0], r[1].img); } finally { URL.revokeObjectURL(r[1].url); }
+      if (code) { if (navigator.vibrate) navigator.vibrate(60); lookup(code); }
+      else { B.mode = 'manual'; B.msg = 'Не удалось прочитать штрихкод на фото. Сними ближе, ровно и без бликов — или введи цифры под штрихкодом.'; paint(); }
+    }).catch(function () { B.mode = 'manual'; B.msg = 'Не получилось открыть распознавание — введи цифры под штрихкодом.'; paint(); });
+  }
   function lookup(code) {
     code = String(code || '').replace(/\D/g, '');
     B.code = code; B.prod = null;
@@ -122,8 +171,10 @@
     if (navigator.onLine === false) { B.mode = 'notfound'; B.msg = 'Нет сети — найти продукт не получится. Введи КБЖУ с упаковки, в следующий раз он найдётся без интернета.'; paint(); return; }
     B.mode = 'loading'; paint();
     var ctl = window.AbortController ? new AbortController() : null, to = setTimeout(function () { if (ctl) ctl.abort(); }, 9000);
-    fetch(OFF + code + '.json?fields=product_name,product_name_ru,generic_name,brands,nutriments,serving_quantity', ctl ? { signal: ctl.signal } : {})
-      .then(function (r) { return r.json().catch(function () { return null; }); })
+    var q = code + '.json?fields=product_name,product_name_ru,generic_name,brands,nutriments,serving_quantity';
+    var get1 = function (base) { return fetch(base + q, ctl ? { signal: ctl.signal } : {}).then(function (r) { if (!r.ok && r.status !== 404) throw new Error('http ' + r.status); return r.json().catch(function () { if (!r.ok) return { status: 0 }; throw new Error('json'); }); }); };
+    // v9.4: if world.openfoodfacts.org is down / blocked → the Russian mirror (same database)
+    get1(OFF).catch(function () { if (ctl && ctl.signal.aborted) throw new Error('timeout'); return get1(OFF_RU); })
       .then(function (j) {
         clearTimeout(to);
         if (B.code !== code) return;
@@ -150,6 +201,7 @@
     var u = U(), html = '<div class="v9-bc card-in"><div class="v9-bc-head"><b>▥ Штрихкод</b><button type="button" class="icon-btn" data-v9bc="close" aria-label="Закрыть">✕</button></div>';
     if (B.mode === 'scan') html += '<video id="v9BcVideo" class="v9-bc-video" playsinline muted></video><p class="muted small">Наведи камеру на штрихкод. Не получается — введи цифры ниже.</p>';
     if (B.mode === 'loading') html += '<p class="v9-bc-msg">Ищу ' + u.esc(B.code) + ' в Open Food Facts…</p>';
+    if (B.mode === 'decoding') html += '<p class="v9-bc-msg">Читаю штрихкод на фото…</p>';
     if (B.mode === 'found') {
       var o = B.prod, g = o.por || 100;
       html += '<div class="v9-bc-prod"><b>' + u.esc(o.n) + '</b><small class="muted">' + u.esc(B.code) + ' · на 100 г: ' + Math.round(o.k) + ' ккал · Б ' + u.num(o.p) + ' · Ж ' + u.num(o.f) + ' · У ' + u.num(o.c) + (o.fib !== undefined ? ' · клетч. ' + u.num(o.fib) : '') + (o.src === 'me' ? ' · введено тобой' : ' · Open Food Facts') + '</small></div>' +
@@ -164,10 +216,11 @@
         '<label class="v9-bc-g"><span>Сколько съел, г</span><input class="num-input" id="v9BcGrams" type="text" inputmode="decimal" maxlength="5" value="100"></label>' +
         '<button type="button" class="btn primary wide" data-v9bc="save-add">Сохранить и добавить</button></div>';
     }
-    if (B.mode !== 'found' && B.mode !== 'loading') {
+    if (B.mode !== 'found' && B.mode !== 'loading' && B.mode !== 'decoding') {
+      if (B.mode !== 'scan') html += '<label class="btn wide v9-bc-photo">📷 Сфотографировать штрихкод<input type="file" accept="image/*" capture="environment" data-v9bc-photo hidden></label>';
       html += '<form class="v9-bc-manual" data-v9bc-form><input id="v9BcCode" class="num-input" type="text" inputmode="numeric" maxlength="14" placeholder="Цифры под штрихкодом" value="' + (B.mode === 'notfound' ? '' : u.esc(B.code)) + '" aria-label="Цифры штрихкода"><button type="submit" class="btn">Найти</button></form>';
       if (B.msg && B.mode !== 'notfound') html += '<p class="muted small v9-bc-msg">' + u.esc(B.msg) + '</p>';
-      if (!hasDetector() && B.mode === 'manual' && !B.msg) html += '<p class="muted small">Этот браузер не умеет сканировать штрихкоды камерой (например, Safari на iPhone) — введи цифры под штрихкодом.</p>';
+      if (!hasDetector() && B.mode === 'manual' && !B.msg) html += '<p class="muted small">Сфотографируй штрихкод — распознаю прямо на телефоне, фото никуда не отправляется. Или введи цифры под штрихкодом.</p>';
     } else if (B.mode === 'found') html += '<button type="button" class="link-btn v9-bc-again" data-v9bc="again">Другой штрихкод</button>';
     box.innerHTML = html + '</div>';
     if (B.mode === 'found') calc();
@@ -184,6 +237,7 @@
     A().afterFoodChange('＋ ' + o.n.slice(0, 40) + ' · ' + v.kcal + ' ккал');
   }
 
+  document.addEventListener('change', function (e) { var i = e.target; if (i && i.hasAttribute && i.hasAttribute('data-v9bc-photo') && i.files && i.files[0]) { stopCam(); decodePhoto(i.files[0]); } });
   document.addEventListener('input', function (e) { if (e.target && e.target.id === 'v9BcGrams') calc(); if (e.target && e.target.id === 'foodSearch') render(); });
   document.addEventListener('submit', function (e) {
     var f = e.target.closest && e.target.closest('[data-v9bc-form]'); if (!f) return;
@@ -200,8 +254,9 @@
     else if (a === 'save-add') {
       var val = function (id) { var i = document.getElementById(id); var s = i ? String(i.value).trim().replace(',', '.') : ''; return s === '' ? null : Number(s); };
       var name = (document.getElementById('v9BcName').value || '').trim(), k = val('v9BcK'), p = val('v9BcP') || 0, f = val('v9BcF') || 0, c = val('v9BcC') || 0, fib = val('v9BcFib');
+      var typedK = k !== null;
       if (k === null) k = p * 4 + f * 9 + c * 4;
-      if (!(k > 0 && k <= 950) || [p, f, c].some(function (v) { return !(v >= 0 && v <= 100); }) || (fib !== null && !(fib >= 0 && fib <= 100))) { A().toast('Проверь КБЖУ на 100 г'); return; }
+      if (!(typedK ? k >= 0 : k > 0) || !(k <= 950) || [p, f, c].some(function (v) { return !(v >= 0 && v <= 100); }) || (fib !== null && !(fib >= 0 && fib <= 100))) { A().toast('Проверь КБЖУ на 100 г'); return; }
       var o = { n: (name || 'Продукт ' + B.code).slice(0, 120), k: num(k), p: num(p), f: num(f), c: num(c), src: 'me', t: Date.now() };
       if (fib !== null) o.fib = num(fib);
       if (/^\d{6,14}$/.test(B.code)) { BC[B.code] = o; saveBc(); }
@@ -229,5 +284,5 @@
     imp: function (o) { cleanFav(o).forEach(function (x) { if (!isFav(x)) FAV.push(x); }); FAV = FAV.slice(0, 40); saveFav(); } });
   window.V9.register('barcodes', { exp: function () { var me = {}; Object.keys(BC).forEach(function (k) { if (BC[k].src === 'me') me[k] = BC[k]; }); return Object.keys(me).length ? me : undefined; }, count: function () { return 0; },
     imp: function (o) { var c = cleanBc(o); Object.keys(c).forEach(function (k) { if (!BC[k]) BC[k] = c[k]; }); saveBc(); } });
-  window.V9Food = { render: render, isFav: isFav, toggleFav: toggleFav, favs: function () { return FAV; }, lookup: lookup, eanOk: eanOk, cache: function () { return BC; }, hasDetector: hasDetector };
+  window.V9Food = { render: render, isFav: isFav, toggleFav: toggleFav, favs: function () { return FAV; }, lookup: lookup, eanOk: eanOk, cache: function () { return BC; }, hasDetector: hasDetector, decodeFile: decodePhoto, loadZx: loadZx };
 })();

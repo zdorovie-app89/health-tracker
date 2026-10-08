@@ -16,11 +16,11 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="styles.css?v=9.3">
-  <link rel="stylesheet" href="face.css?v=9.3">
-  <link rel="stylesheet" href="theme.css?v=9.3">
-  <link rel="stylesheet" href="pro.css?v=9.3">
-  <link rel="stylesheet" href="v9.css?v=9.3">
+  <link rel="stylesheet" href="styles.css?v=9.4">
+  <link rel="stylesheet" href="face.css?v=9.4">
+  <link rel="stylesheet" href="theme.css?v=9.4">
+  <link rel="stylesheet" href="pro.css?v=9.4">
+  <link rel="stylesheet" href="v9.css?v=9.4">
 </head>
 <body>
   <main class="app">
@@ -196,13 +196,6 @@
 
       <section class="card">
         <div class="row">
-          <span class="row-lbl" data-i18n="profile.language">Язык</span>
-          <div class="seg" role="tablist">
-            <button class="seg-btn" data-lang="ru">Русский</button>
-            <button class="seg-btn" data-lang="en">English</button>
-          </div>
-        </div>
-        <div class="row">
           <label class="row-lbl" for="heightInput" data-i18n="profile.height">Рост, см</label>
           <input class="num-input" id="heightInput" type="text" inputmode="numeric" placeholder="170" maxlength="3">
         </div>
@@ -241,7 +234,7 @@
       </section>
 
 
-      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 9.3</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
+      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 9.4</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
     </section>
 
     <!-- ============ FOOD (diary + coach tips, fully offline) ============ -->
@@ -445,29 +438,30 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="license-data.js?v=9.3" defer></script>
-  <script src="pro.js?v=9.3" defer></script>
-  <script src="foods.js?v=9.3" defer></script>
-  <script src="exercises.js?v=9.3" defer></script>
-  <script src="tips.js?v=9.3" defer></script>
-  <script src="jaw-data.js?v=9.3" defer></script>
-  <script src="jaw.js?v=9.3" defer></script>
-  <script src="skin.js?v=9.3" defer></script>
-  <script src="history.js?v=9.3" defer></script>
-  <script src="v9.js?v=9.3" defer></script>
-  <script src="sleeptimes.js?v=9.3" defer></script>
-  <script src="insights.js?v=9.3" defer></script>
-  <script src="foodplus.js?v=9.3" defer></script>
-  <script src="body.js?v=9.3" defer></script>
-  <script src="remind.js?v=9.3" defer></script>
-  <script src="ai-config.js?v=9.3" defer></script>
-  <script src="ai.js?v=9.3" defer></script>
-  <script src="app.js?v=9.3" defer></script>
+  <script src="store-guard.js?v=9.4" defer></script>
+  <script src="license-data.js?v=9.4" defer></script>
+  <script src="pro.js?v=9.4" defer></script>
+  <script src="foods.js?v=9.4" defer></script>
+  <script src="exercises.js?v=9.4" defer></script>
+  <script src="tips.js?v=9.4" defer></script>
+  <script src="jaw-data.js?v=9.4" defer></script>
+  <script src="jaw.js?v=9.4" defer></script>
+  <script src="skin.js?v=9.4" defer></script>
+  <script src="history.js?v=9.4" defer></script>
+  <script src="v9.js?v=9.4" defer></script>
+  <script src="sleeptimes.js?v=9.4" defer></script>
+  <script src="insights.js?v=9.4" defer></script>
+  <script src="foodplus.js?v=9.4" defer></script>
+  <script src="body.js?v=9.4" defer></script>
+  <script src="remind.js?v=9.4" defer></script>
+  <script src="ai-config.js?v=9.4" defer></script>
+  <script src="ai.js?v=9.4" defer></script>
+  <script src="app.js?v=9.4" defer></script>
   <script>
     /* v8.1 auto-update: look for a new service worker on launch, when the app returns to the foreground and every
      * 30 min. The new worker activates at once (skipWaiting + clients.claim); then the page reloads silently if the
      * user has not touched it since launch/resume, otherwise a small «Доступно обновление — Обновить» banner appears. */
-    window.HT_VERSION = '9.3';
+    window.HT_VERSION = '9.4';
     (function () {
       if (!('serviceWorker' in navigator)) return;
       var sw = navigator.serviceWorker, hadController = !!sw.controller, reloading = false, reg = null;
