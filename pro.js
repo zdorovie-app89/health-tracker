@@ -1,8 +1,9 @@
-/* Здоровье v7 — Free / Pro licensing (fully offline, no server).
+/* Здоровье v7–v8.1 — Free / Pro licensing (fully offline, no server).
  *
  *  • Free for everyone + automatic 7-day Pro trial from the first launch (stored on this device).
  *  • Pro keys are Ed25519-signed tokens  HT1.<base64url payload>.<base64url signature>
- *      payload { k: key id, d: devices 1|3|10|"owner", i: issued (unix s), e: expiry (unix s, 0 = never) }
+ *      payload { k: key id, d: devices 1|3|10|"owner", i: issued (unix s), e: expiry (unix s, 0 = never),
+ *                u?: personal ID or [IDs] the key is bound to (v8.1), g?: 1 = gift, f?: gift sender name }
  *    verified with the public key from license-data.js (WebCrypto Ed25519, fallback: vendor/nacl.min.js).
  *    Without the private key (kept offline by the owner) a token cannot be forged or edited.
  *  • Activation: link …/#pro=<token>  or paste the token in Профиль / «Купить Про».
@@ -13,7 +14,9 @@
  *    goes back more than 1 day, time-limited Pro (paid keys, trial) pauses until an online check.
  *  • Device limit: written into the key and shown, but NOT enforced (no server) — see onlineActivationCheck().
  *
- * Storage: localStorage 'health.pro.v1' -> { trialStart, token, v6key, maxSeen, revoked: [], revokedAt, last }
+ *  • Personal ID (v8.1): «ZD-XXXXXX», random per browser, shown in Профиль / «Купить Про», saved in backups.
+ *    A key with `u` works only where the ID matches — sharing such a key is useless. Keys without `u` work anywhere.
+ * Storage: localStorage 'health.pro.v1' -> { trialStart, token, v6key, maxSeen, revoked: [], revokedAt, last, uid }
  */
 (function () {
   'use strict';
@@ -37,6 +40,19 @@
   var S = load();
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage blocked */ } }
   if (!S.trialStart) { S.trialStart = Date.now(); save(); }
+
+  /* ---------------- personal ID (v8.1) ---------------- */
+  var ID_ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // no 0/O, 1/I/L — easy to read and dictate
+  var ID_RX = /^ZD-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
+  function newUid() {
+    var a = new Uint8Array(6), s = 'ZD-', i;
+    try { window.crypto.getRandomValues(a); } catch (e) { for (i = 0; i < 6; i++) a[i] = Math.floor(Math.random() * 256); }
+    for (i = 0; i < 6; i++) s += ID_ALPHA[a[i] % ID_ALPHA.length];
+    return s;
+  }
+  function validId(x) { return typeof x === 'string' && ID_RX.test(x); }
+  if (!validId(S.uid)) { S.uid = newUid(); save(); }
+  function userId() { return S.uid; }
 
   /* ---------------- helpers ---------------- */
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -69,7 +85,7 @@
     if (!naclPromise) {
       naclPromise = new Promise(function (res, rej) {
         var s = document.createElement('script');
-        s.src = 'vendor/nacl.min.js?v=8';
+        s.src = 'vendor/nacl.min.js?v=8.1';
         s.onload = function () { window.nacl && window.nacl.sign ? res(window.nacl) : rej(new Error('nacl')); };
         s.onerror = function () { naclPromise = null; rej(new Error('nacl load')); };
         document.head.appendChild(s);
@@ -92,7 +108,7 @@
 
   // → Promise<{ ok, p (payload), err }>
   function checkToken(tok) {
-    var m = /^HT1\.([A-Za-z0-9_-]{10,400})\.([A-Za-z0-9_-]{85,86})$/.exec(String(tok || '').trim());
+    var m = /^HT1\.([A-Za-z0-9_-]{10,1200})\.([A-Za-z0-9_-]{85,86})$/.exec(String(tok || '').trim());
     if (!m) return Promise.resolve({ ok: false, err: 'format' });
     var p;
     try { p = JSON.parse(new TextDecoder().decode(b64uToBytes(m[1]))); } catch (e) { return Promise.resolve({ ok: false, err: 'format' }); }
@@ -102,7 +118,11 @@
       if (!ok) return { ok: false, err: 'signature' };
       if (!p || typeof p.k !== 'string' || !/^[A-Z0-9]{4,12}$/.test(p.k) || !(p.d === 'owner' || p.d === 1 || p.d === 3 || p.d === 10) ||
         typeof p.i !== 'number' || typeof p.e !== 'number' || (p.d !== 'owner' && !(p.e > p.i))) return { ok: false, err: 'payload' };
+      var ids = p.u === undefined ? null : [].concat(p.u);
+      if (ids && (!ids.length || ids.length > 10 || !ids.every(validId))) return { ok: false, err: 'payload' };
+      if ((p.g !== undefined && p.g !== 1) || (p.f !== undefined && (typeof p.f !== 'string' || p.f.length > 60))) return { ok: false, err: 'payload' };
       if (S.revoked.indexOf(p.k) >= 0) return { ok: false, err: 'revoked', p: p };
+      if (ids && ids.indexOf(S.uid) < 0) return { ok: false, err: 'otherid', p: p };
       if (p.e && p.e * 1000 <= effNow()) return { ok: false, err: 'expired', p: p };
       return { ok: true, p: p };
     }, function () { return { ok: false, err: 'noverify' }; });
@@ -159,10 +179,7 @@
   /* ---------------- device limit hook (NOT enforced — there is no server) ----------------
    * Plug an online activation check in here later (e.g. POST { kid, deviceId } to a server that counts
    * devices per key id and answers { ok:false } over the limit). Today it always allows. */
-  function deviceId() {
-    if (!S.deviceId) { S.deviceId = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10)).toUpperCase(); save(); }
-    return S.deviceId;
-  }
+  function deviceId() { return S.uid; }
   function onlineActivationCheck(payload) {   // eslint-disable-line no-unused-vars
     return Promise.resolve({ ok: true, enforced: false, deviceId: deviceId() });
   }
@@ -183,6 +200,7 @@
     else if (tp && tp.e * 1000 > now) st = { tier: 'pro', pro: true, kid: tp.k, devices: tp.d, until: tp.e * 1000, daysLeft: Math.max(1, Math.ceil((tp.e * 1000 - now) / DAY)) };
     else if (paused && trialEnd > Date.now()) st = { tier: 'paused', pro: false };
     else if (trialEnd > now) st = { tier: 'trial', pro: true, until: trialEnd, daysLeft: Math.min(TRIAL_DAYS, Math.max(1, Math.ceil((trialEnd - now) / DAY))) };
+    else if (V.other) st = { tier: 'free', pro: false, note: 'otherid', kid: V.other.k };
     else st = { tier: 'free', pro: false, note: tp ? 'expired' : (S.trialStart ? 'trialOver' : ''), kid: tp ? tp.k : undefined, until: tp ? tp.e * 1000 : undefined };
     st.trialEnd = trialEnd;
     return st;
@@ -203,6 +221,7 @@
     jobs.push(S.token ? checkToken(S.token).then(function (r) {
       V.tok = r.ok ? r.p : (r.err === 'expired' || r.err === 'revoked' ? r.p : null);
       V.tokErr = r.ok ? null : r.err;
+      V.other = r.err === 'otherid' ? r.p : null;   // kept (not deleted): restoring the right ID from a backup re-enables it
       if (!r.ok && (r.err === 'signature' || r.err === 'format' || r.err === 'payload')) { S.token = null; save(); }
     }) : Promise.resolve(V.tok = null));
     jobs.push(S.v6key ? checkV6(S.v6key).then(function (n) { V.v6 = !!n; if (!n) { S.v6key = null; save(); } }) : Promise.resolve());
@@ -236,8 +255,11 @@
     revoked: 'Этот ключ отозван. Напиши в поддержку ' + TG_NAME + '.',
     noverify: 'Не удалось проверить ключ на этом устройстве. Обнови браузер или напиши ' + TG_NAME + '.',
     v6: 'Ключ доступа не найден. Проверь, что он введён без ошибок.',
-    paused: 'Время на устройстве сдвинуто назад. Подключись к интернету, чтобы проверить ключ.'
+    paused: 'Время на устройстве сдвинуто назад. Подключись к интернету, чтобы проверить ключ.',
+    otherid: 'Этот ключ для другого ID.'
   };
+  function idList(p) { return [].concat(p && p.u || []); }
+  function giftInfo(p) { return p && p.g === 1 ? { from: p.f || '', days: p.e ? Math.max(1, Math.round((p.e - p.i) / 86400)) : 0, until: p.e * 1000 } : null; }
   function extractToken(input) {
     var s = String(input || '').trim();
     var i = s.indexOf('#pro=');
@@ -253,7 +275,8 @@
       return checkToken(tok).then(function (r) {
         if (!r.ok) {
           var msg = ERR[r.err] || ERR.format;
-          if (r.err === 'expired' && r.p) msg = 'Срок действия ключа ' + r.p.k + ' истёк ' + fmtDate(r.p.e * 1000) + '. Напиши ' + TG_NAME + ' для продления.';
+          if (r.err === 'expired' && r.p) msg = 'Срок действия ключа ' + r.p.k + ' истёк ' + fmtDate(r.p.e * 1000) + ' — напиши ' + TG_NAME + ' для продления.';
+          if (r.err === 'otherid' && r.p) msg = 'Этот ключ для другого ID (' + idList(r.p).join(', ') + '). Твой ID: ' + S.uid + '. Если это твой ключ — восстанови ID из резервной копии или напиши ' + TG_NAME + '.';
           return { ok: false, msg: msg, err: r.err };
         }
         return onlineActivationCheck(r.p).then(function (chk) {
@@ -263,11 +286,13 @@
           if (cur && cur.d !== 'owner' && r.p.d !== 'owner' && cur.e > r.p.e) return { ok: true, msg: 'У тебя уже есть ключ с более поздним сроком (до ' + fmtDate(cur.e * 1000) + ').', kept: true };
           var renewed = cur && cur.k === r.p.k;
           S.token = tok; save();
-          V.tok = r.p; V.tokErr = null;
+          V.tok = r.p; V.tokErr = null; V.other = null;
           publish();
+          var gift = giftInfo(r.p);
           var m = r.p.d === 'owner' ? 'Владельческий доступ активирован: все функции бессрочно.'
+            : gift ? '🎁 Тебе подарили Про на ' + gift.days + ' ' + plural(gift.days, 'день', 'дня', 'дней') + (gift.from ? ' от ' + gift.from : '') + '! Действует до ' + fmtDate(gift.until)
             : (renewed ? 'Про продлён' : 'Про активирован') + ' до ' + fmtDate(r.p.e * 1000) + ' · ' + devWord(r.p.d) + '.';
-          return { ok: true, msg: m, status: status };
+          return { ok: true, msg: m, status: status, gift: gift };
         });
       });
     }
@@ -301,6 +326,12 @@
     m.hidden = false;
     m.onclick = function (e) { if (e.target === m || e.target.closest('[data-pro-close]')) m.hidden = true; };
   }
+  function giftModal(g) {
+    modal('<div class="pro-gift-ic" aria-hidden="true">🎁</div><h2>Тебе подарили Про!</h2>' +
+      '<p class="pro-gift-line">На <b>' + g.days + ' ' + plural(g.days, 'день', 'дня', 'дней') + '</b>' + (g.from ? ' от <b>' + esc(g.from) + '</b>' : '') + '</p>' +
+      '<p class="muted">Все функции открыты до ' + fmtDate(g.until) + ': ИИ-ассистент, вся программа для челюсти, персональный уход, статистика и экспорт. Приятного пользования ✨</p>');
+    var c = document.querySelector('#proModal .pro-modal-card'); if (c) c.classList.add('pro-gift-card');
+  }
   function statusLine(st) {
     st = st || status || compute();
     if (st.tier === 'owner') return { t: 'Владелец', s: 'Все функции · бессрочно', cls: 'owner' };
@@ -308,7 +339,7 @@
     if (st.tier === 'pro') return { t: 'Про до ' + fmtDate(st.until), s: 'Осталось ' + st.daysLeft + ' ' + plural(st.daysLeft, 'день', 'дня', 'дней'), cls: 'pro' };
     if (st.tier === 'trial') return { t: 'Пробный Про: ' + st.daysLeft + ' ' + plural(st.daysLeft, 'день', 'дня', 'дней'), s: 'до ' + fmtDate(st.until) + ', затем — бесплатная версия', cls: 'trial' };
     if (st.tier === 'paused') return { t: 'Про на паузе', s: 'Время на устройстве сдвинуто назад. Подключись к интернету для проверки.', cls: 'paused' };
-    var s = st.note === 'revoked' ? 'Ключ ' + st.kid + ' отозван' : st.note === 'expired' ? 'Срок ключа ' + st.kid + ' истёк ' + fmtDate(st.until) : 'Пробный период закончился';
+    var s = st.note === 'revoked' ? 'Ключ ' + st.kid + ' отозван' : st.note === 'otherid' ? 'Ключ ' + st.kid + ' привязан к другому ID' : st.note === 'expired' ? 'Срок ключа ' + st.kid + ' истёк ' + fmtDate(st.until) : 'Пробный период закончился';
     return { t: 'Бесплатная версия', s: s, cls: 'free' };
   }
   var flash = null;   // result of the last activation, kept across re-renders for a few seconds
@@ -326,18 +357,26 @@
     var st = status || compute(), l = statusLine(st), rows = '';
     if (st.devices) rows += '<div class="pro-kv"><span>Устройства</span><b>' + (st.devices === 'owner' ? 'без ограничений' : devWord(st.devices)) + '</b></div>';
     if (st.kid) rows += '<div class="pro-kv"><span>Номер ключа</span><b class="mono">' + esc(st.kid) + '</b></div>';
+    if (V.tok && V.tok.u && !V.tokErr) rows += '<div class="pro-kv"><span>Привязка</span><b>к твоему ID ✓</b></div>';
     if (st.tier === 'pro' || st.tier === 'owner') rows += '<div class="pro-kv"><span>Проверка ключа</span><b>подпись ✓' + (S.revokedAt ? ' · список отзыва ' + new Date(S.revokedAt).toLocaleDateString('ru-RU') : '') + '</b></div>';
     box.innerHTML = '<div class="card-head"><h2>Про-доступ</h2><span class="pro-tier ' + l.cls + '">' + (st.pro ? '★ ' : '') + esc(l.t.split(':')[0].replace(/ до .*/, '')) + '</span></div>' +
-      '<div class="pro-status ' + l.cls + '"><b>' + esc(l.t) + '</b><small>' + esc(l.s) + '</small></div>' + rows +
+      '<div class="pro-status ' + l.cls + '"><b>' + esc(l.t) + '</b><small>' + esc(l.s) + '</small></div>' + idBox('Твой ID') + rows +
       (st.tier === 'owner' || st.tier === 'lifetime' ? '' : '<a class="btn primary wide pro-buy-btn" href="#buy">' + (st.tier === 'pro' ? 'Продлить Про' : 'Купить Про · от 399 ₽') + '</a>') +
       activateForm('proKeyProfile') +
       (st.devices && st.devices !== 'owner' ? '<p class="muted small">Число устройств записано в ключе. Пожалуйста, используй ключ только на своих устройствах.</p>' : '') +
       '<a class="btn wide pro-support" href="' + TG_URL + '" target="_blank" rel="noopener"><span aria-hidden="true">💬</span> Поддержка · ' + TG_NAME + '</a>';
   }
 
+  function idBox(label, note) {
+    return '<div class="pro-id"><span class="pro-id-l">' + esc(label) + '</span><b class="mono" id="proUid">' + esc(S.uid) + '</b>' +
+      '<button type="button" class="btn small" data-pro-copyid>Копировать</button>' + (note ? '<small class="muted">' + note + '</small>' : '') + '</div>';
+  }
+
   /* ---------------- Buy screen ---------------- */
   var buySel = 3;
-  function hintText() { var t = TARIFFS.filter(function (x) { return x.d === buySel; })[0]; return 'Хочу Про на ' + t.w + ' (' + t.p + ' ₽/мес)'; }
+  function tariff() { return TARIFFS.filter(function (x) { return x.d === buySel; })[0]; }
+  function hintText() { var t = tariff(); return 'Хочу Про на ' + t.w + ' (' + t.p + ' ₽/мес). Мой ID: ' + S.uid; }
+  function giftHintText() { var t = tariff(); return 'Хочу подарить Про на ' + t.w + ' (' + t.p + ' ₽/мес). ID друга: ZD-______ (или нужна непривязанная ссылка-подарок). От кого: ______'; }
   function renderBuy() {
     var root = document.getElementById('buyRoot'); if (!root) return;
     var st = status || compute(), l = statusLine(st);
@@ -361,14 +400,25 @@
         return '<button type="button" role="radio" aria-checked="' + (t.d === buySel) + '" class="pro-tariff' + (t.d === buySel ? ' on' : '') + '" data-tariff="' + t.d + '">' +
           (t.d === 3 ? '<span class="pro-pop">выгодно</span>' : '') + '<b>' + t.p + ' ₽</b><span>' + t.w + '</span></button>';
       }).join('') + '</div></section>' +
-      '<section class="card"><div class="card-head"><h2>Как купить</h2></div><ol class="pro-steps">' +
-      '<li>Напиши в Telegram <a href="' + TG_URL + '" target="_blank" rel="noopener">' + TG_NAME + '</a> и выбери тариф.</li>' +
+      '<section class="card"><div class="card-head"><h2>Как купить</h2></div>' +
+      idBox('Твой ID — пришли его при покупке', 'Ключ будет привязан к этому ID и не сработает у других. ID есть и в «Профиле», он сохраняется в резервной копии.') +
+      '<ol class="pro-steps">' +
+      '<li>Напиши в Telegram <a href="' + TG_URL + '" target="_blank" rel="noopener">' + TG_NAME + '</a>, выбери тариф и пришли свой ID.</li>' +
       '<li>Оплати переводом по СБП (реквизиты пришлют в личке).</li>' +
       '<li>Получи ссылку-ключ и открой её — или вставь ключ ниже.</li></ol>' +
       '<div class="pro-hint"><span class="muted small">Можно отправить так:</span><b id="proHint">«' + esc(hintText()) + '»</b>' +
       '<button type="button" class="link-btn small" data-pro-copy>Скопировать</button></div>' +
       '<a class="btn primary big pro-tg" href="' + TG_URL + '" target="_blank" rel="noopener" data-pro-tg><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 4.5L2.8 11.7c-1 .4-1 1.8.1 2.1l4.6 1.4 1.8 5.5c.3.8 1.3 1 1.9.4l2.6-2.5 4.8 3.5c.8.6 1.9.1 2.1-.9l3-15c.2-1.1-.9-2-1.9-1.6zM9.6 14.4l8.3-7.4-6.6 8.6-.3 3.3z"/></svg>Написать в Telegram</a>' +
       '<button type="button" class="btn wide pro-card-soon" disabled>💳 Оплата картой — скоро</button></section>' +
+      '<section class="card pro-gift"><div class="card-head"><h2>🎁 Подарить Про</h2></div><ol class="pro-steps">' +
+      '<li>Напиши <a href="' + TG_URL + '" target="_blank" rel="noopener">' + TG_NAME + '</a> и выбери тариф для друга (тариф выше).</li>' +
+      '<li>Пришли <b>ID друга</b> — он найдёт его в «Профиль → Про-доступ». Тогда подарок сработает только у него. Если хочешь сюрприз — попроси непривязанную ссылку-подарок.</li>' +
+      '<li>Оплати переводом по СБП.</li>' +
+      '<li>Получи ссылку-подарок и отправь другу: при открытии он увидит «🎁 Тебе подарили Про» и твоё имя.</li></ol>' +
+      '<p class="muted small">Честно: непривязанная ссылка сработает у любого, кто её откроет, — отправляй её только другу лично. Ссылка, привязанная к ID, работает только у него.</p>' +
+      '<div class="pro-hint"><span class="muted small">Можно отправить так:</span><b id="proGiftHint">«' + esc(giftHintText()) + '»</b>' +
+      '<button type="button" class="link-btn small" data-pro-copygift>Скопировать</button></div>' +
+      '<a class="btn wide" href="' + TG_URL + '" target="_blank" rel="noopener" data-pro-tggift>🎁 Подарить через Telegram</a></section>' +
       '<section class="card">' + activateForm('proKeyBuy') + '</section>' +
       '<p class="muted small pro-foot">Ключ действует 30 дней с момента выдачи, продление — новым ключом. Вопросы — <a href="' + TG_URL + '" target="_blank" rel="noopener">' + TG_NAME + '</a>.</p>';
   }
@@ -387,6 +437,7 @@
       btn.disabled = false;
       msg.className = 'pro-act-msg ' + (r.ok ? 'ok' : 'err'); msg.textContent = r.msg;
       flash = { cls: r.ok ? 'ok' : 'err', text: r.msg, at: Date.now() };
+      if (r.ok && r.gift) giftModal(r.gift);
       if (r.ok) { inp.value = ''; toast(r.msg); renderProfileCard(); if (document.getElementById('buyRoot') && location.hash.indexOf('#buy') === 0) setTimeout(renderBuy, 1200); }
     });
   });
@@ -395,6 +446,9 @@
     if (t) { buySel = Number(t.getAttribute('data-tariff')); renderBuy(); return; }
     if (e.target.closest && e.target.closest('[data-pro-copy]')) { copyText(hintText()).then(function (ok) { toast(ok ? 'Текст скопирован — вставь его в чат' : hintText()); }); return; }
     if (e.target.closest && e.target.closest('[data-pro-tg]')) { copyText(hintText()); }
+    if (e.target.closest && e.target.closest('[data-pro-copyid]')) { copyText(S.uid).then(function (ok) { toast(ok ? 'ID скопирован: ' + S.uid : 'Твой ID: ' + S.uid); }); return; }
+    if (e.target.closest && e.target.closest('[data-pro-copygift]')) { copyText(giftHintText()).then(function (ok) { toast(ok ? 'Текст скопирован — вставь его в чат' : giftHintText()); }); return; }
+    if (e.target.closest && e.target.closest('[data-pro-tggift]')) { copyText(giftHintText()); }
     var lk = e.target.closest && e.target.closest('[data-pro-lock]');
     if (lk) { e.preventDefault(); location.hash = '#buy/' + (lk.getAttribute('data-pro-lock') || ''); }
   });
@@ -413,6 +467,7 @@
     var tok = pendingLink; pendingLink = null;
     activate(tok).then(function (r) {
       renderProfileCard();
+      if (r.ok && r.gift) { giftModal(r.gift); return; }
       modal('<div class="pro-modal-ic ' + (r.ok ? 'ok' : 'err') + '">' + (r.ok ? '★' : '!') + '</div><h2>' + (r.ok ? 'Готово!' : 'Ключ не принят') + '</h2><p class="muted">' + esc(r.msg) + '</p>' +
         (r.ok ? '' : '<a class="btn primary wide" href="' + TG_URL + '" target="_blank" rel="noopener">Написать ' + TG_NAME + '</a>'));
     });
@@ -452,6 +507,8 @@
     badge: badge, lockCard: lockCard, statusLine: statusLine, toast: toast,
     renderProfileCard: renderProfileCard, renderBuy: renderBuy,
     onlineActivationCheck: onlineActivationCheck,
+    userId: userId, validId: validId,
+    setUserId: function (id) { if (!validId(id)) return false; S.uid = id; save(); verifyStored(); renderProfileCard(); return true; },
     _debug: function () { return { verifier: verifier, anchor: anchor, maxSeen: S.maxSeen, paused: clockPaused(), V: V }; },
     TG_URL: TG_URL, TG_NAME: TG_NAME
   };

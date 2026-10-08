@@ -245,3 +245,20 @@
 .hs-picklist button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 6px 4px; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--text); font: inherit; font-size: 14px; text-align: left; }
 .day-start { margin-top: 10px; width: 100%; }
 .hs-wcard .card-head h2 { font-size: 16px; }
+
+/* v8.1: update banner */
+.upd-banner { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 10px); z-index: 1000; display: flex; align-items: center; gap: 12px;
+  padding: 8px 8px 8px 16px; border-radius: 999px; background: rgba(28, 22, 72, .96); border: 1px solid var(--line-2); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); color: var(--text); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.upd-banner .btn { height: 34px; padding: 0 14px; border-radius: 999px; }
+.ai-dbline { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .05); font-size: 13.5px; }
+.ai-model-sel { width: 100%; height: 44px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--line-2); background: rgba(10, 8, 34, .5); color: var(--text); font: inherit; }
+.ai-model-custom { margin: -4px 0 10px; width: 100%; height: 40px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--line-2); background: rgba(10, 8, 34, .5); color: var(--text); font: inherit; }
+/* v8.1: personal ID + gifts */
+.pro-id { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; margin: 10px 0; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, .05); border: 1px solid var(--line); }
+.pro-id-l { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); }
+.pro-id b { font-size: 20px; letter-spacing: .06em; }
+.pro-id small { grid-column: 1 / -1; font-size: 12px; }
+.pro-gift-ic { font-size: 56px; line-height: 1; text-align: center; margin: 4px 0 6px; animation: giftPop .6s ease-out; }
+.pro-gift-card h2 { text-align: center; }
+.pro-gift-line { text-align: center; font-size: 17px; margin: 4px 0 8px; }
+@keyframes giftPop { 0% { transform: scale(.4) rotate(-12deg); opacity: 0; } 70% { transform: scale(1.12) rotate(4deg); opacity: 1; } 100% { transform: none; } }

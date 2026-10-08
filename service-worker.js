@@ -8,30 +8,33 @@
  *     exercise illustrations img/ex/*.svg + img/jaw/*.svg (cached in the background after install).
  *     revoked.json (key revocation list + server time) is never cached.
  * v8: activity history (history.js), AI chat via LLM + food photo (ai.js, ai-config.js); pages and app files are
- *     revalidated with the server (cache: no-cache) so a new release is picked up immediately. */
+ *     revalidated with the server (cache: no-cache) so a new release is picked up immediately.
+ * v8.1: auto-update — the page registers this file with updateViaCache:'none' and checks for a new version on launch,
+ *     when the app comes back to the foreground and every 30 min; a new worker activates at once (skipWaiting +
+ *     clients.claim) and the page reloads (silently if untouched since launch, otherwise via an «Обновить» banner). */
 'use strict';
 
-var CACHE_VERSION = 'health-tracker-v8';
+var CACHE_VERSION = 'health-tracker-v8.1';
 var APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=8',
-  './face.css?v=8',
-  './theme.css?v=8',
-  './pro.css?v=8',
-  './license-data.js?v=8',
-  './pro.js?v=8',
-  './foods.js?v=8',
-  './exercises.js?v=8',
-  './tips.js?v=8',
-  './jaw-data.js?v=8',
-  './jaw.js?v=8',
-  './skin.js?v=8',
-  './history.js?v=8',
-  './ai-config.js?v=8',
-  './ai.js?v=8',
-  './app.js?v=8',
-  './vendor/nacl.min.js?v=8',
+  './styles.css?v=8.1',
+  './face.css?v=8.1',
+  './theme.css?v=8.1',
+  './pro.css?v=8.1',
+  './license-data.js?v=8.1',
+  './pro.js?v=8.1',
+  './foods.js?v=8.1',
+  './exercises.js?v=8.1',
+  './tips.js?v=8.1',
+  './jaw-data.js?v=8.1',
+  './jaw.js?v=8.1',
+  './skin.js?v=8.1',
+  './history.js?v=8.1',
+  './ai-config.js?v=8.1',
+  './ai.js?v=8.1',
+  './app.js?v=8.1',
+  './vendor/nacl.min.js?v=8.1',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -137,6 +140,11 @@ self.addEventListener('install', function (event) {
       .then(function (cache) { return cache.addAll(APP_SHELL); })
       .then(function () { return self.skipWaiting(); })
   );
+});
+
+// a page can ask a waiting worker (e.g. one installed by an older page) to take over right away
+self.addEventListener('message', function (event) {
+  if (event.data === 'skipWaiting' || (event.data && event.data.type === 'SKIP_WAITING')) self.skipWaiting();
 });
 
 self.addEventListener('activate', function (event) {

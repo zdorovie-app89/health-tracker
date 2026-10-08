@@ -1,4 +1,4 @@
-/* Здоровье v8 — «ИИ-ассистент» (Pro). View #ai.
+/* Здоровье v8.1 — «ИИ-ассистент» (Pro). View #ai.
  * Two engines:
  *  1) Built-in Russian analyst (always available, offline): reads the user's own data via window.HTApp,
  *     JawModule.stats(), SkinModule.stats(); answers nutrition questions from the local food database
@@ -18,23 +18,26 @@
   'use strict';
   var KEY = 'health.ai.v1';
   var OR_BASE = 'https://openrouter.ai/api/v1';
-  // Free OpenRouter models checked 2026-10-08 (GET /api/v1/models). The list is sent as `models` so OpenRouter
-  // itself falls back to the next one when a model is rate-limited or down.
-  var DEFAULT_MODEL = 'google/gemma-4-31b-it:free';
-  var CHAT_FALLBACKS = ['google/gemma-4-31b-it:free', 'nvidia/nemotron-3-ultra-550b-a55b:free', 'openrouter/free'];
-  var DEFAULT_VMODEL = 'google/gemma-4-31b-it:free';
-  var VISION_FALLBACKS = ['google/gemma-4-31b-it:free', 'thinkingmachines/inkling:free', 'openrouter/free'];
-  var MODELS = ['google/gemma-4-31b-it:free', 'nvidia/nemotron-3-ultra-550b-a55b:free', 'nvidia/nemotron-3-super-120b-a12b:free', 'thinkingmachines/inkling:free', 'google/gemma-4-26b-a4b-it:free', 'openrouter/free'];
-  var VMODELS = ['google/gemma-4-31b-it:free', 'thinkingmachines/inkling:free', 'thinkingmachines/inkling-small:free', 'google/gemma-4-26b-a4b-it:free', 'openrouter/free'];
+  // Free OpenRouter models checked 2026-10-08 against GET /api/v1/models (exact ids). Only real instruct/chat models —
+  // no routers (openrouter/free once routed a question to a content-safety classifier) and no guard/moderation models.
+  var CHAT_MODELS = ['google/gemma-4-31b-it:free', 'thinkingmachines/inkling:free', 'google/gemma-4-26b-a4b-it:free', 'nvidia/nemotron-3-super-120b-a12b:free', 'nvidia/nemotron-3-ultra-550b-a55b:free'];
+  var VISION_MODELS = ['google/gemma-4-31b-it:free', 'thinkingmachines/inkling:free', 'google/gemma-4-26b-a4b-it:free', 'thinkingmachines/inkling-small:free'];
+  var MODEL_NAMES = { 'google/gemma-4-31b-it:free': 'Gemma 4 31B (Google)', 'thinkingmachines/inkling:free': 'Inkling (Thinking Machines)', 'google/gemma-4-26b-a4b-it:free': 'Gemma 4 26B (Google, быстрее)',
+    'nvidia/nemotron-3-super-120b-a12b:free': 'Nemotron 3 Super (NVIDIA)', 'nvidia/nemotron-3-ultra-550b-a55b:free': 'Nemotron 3 Ultra (NVIDIA, медленнее)', 'thinkingmachines/inkling-small:free': 'Inkling Small (Thinking Machines)' };
+  var DEFAULT_MODEL = CHAT_MODELS[0], DEFAULT_VMODEL = VISION_MODELS[0];
+  // never use these: classifiers / guards / embeddings / rerankers, and OpenRouter meta-routers that may pick one
+  var BLOCKED_RX = /safety|guard|moderat|shield|classif|reward|embed|rerank|content-safety/i;
+  function blockedModel(m) { m = String(m || ''); return BLOCKED_RX.test(m) || /^openrouter\//i.test(m); }
   var CHIPS = ['Как я сплю?', 'Сколько я съел сегодня?', 'Калории в мраморной говядине', 'Сколько белка за неделю?', 'Что улучшить?', 'Гречка или рис?', 'Сколько белка мне нужно?', 'Как идёт челюсть?', 'Итоги недели', 'Как мой вес?', 'Как быстрее заснуть?', 'Уход за кожей'];
 
   function load() {
     var s = null; try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
     if (!s || typeof s !== 'object') s = {};
     if (!Array.isArray(s.msgs)) s.msgs = [];
-    // v7 default was 'openrouter/free' — move untouched defaults to the better v8 default
-    if (typeof s.model !== 'string' || !s.model || (s.model === 'openrouter/free' && !s.modelSet)) s.model = DEFAULT_MODEL;
-    if (typeof s.vmodel !== 'string' || !s.vmodel) s.vmodel = DEFAULT_VMODEL;
+    // v7/v8 defaults included the 'openrouter/free' router (it once answered with a safety classifier) → reset any
+    // router / guard / moderation model to the vetted default (v8.1)
+    if (typeof s.model !== 'string' || !s.model.trim() || blockedModel(s.model)) { s.model = DEFAULT_MODEL; s.modelSet = false; }
+    if (typeof s.vmodel !== 'string' || !s.vmodel.trim() || blockedModel(s.vmodel)) s.vmodel = DEFAULT_VMODEL;
     if (!s.ctx || typeof s.ctx !== 'object') s.ctx = {};
     if (!s.photos || typeof s.photos !== 'object') s.photos = {};
     // v7 → v8: `cloud` (opt-in flag) became `cloudOff` (explicit opt-out); a configured key now means «on»
@@ -910,6 +913,7 @@
   function CloudError(status, msg, code) { this.status = status; this.message = msg; this.code = code; }
   function errText(e) {
     if (!e) return 'неизвестная ошибка';
+    if (e.code === 'bad') return 'облачные модели не дали нормального ответа (' + e.message + ')';
     if (e.name === 'AbortError') return 'сервер ИИ не ответил вовремя (таймаут)';
     var s = e.status;
     if (s === 401) return 'ключ не подошёл (401) — проверь его в ⚙️ настройках';
@@ -922,12 +926,31 @@
     if (e instanceof TypeError || /fetch|network|load failed/i.test(e.message || '')) return 'нет связи с сервером ИИ (нет интернета или сервис недоступен из твоей сети)';
     return String(e.message || e).slice(0, 120);
   }
+  // ordered list of vetted models to try: the chosen one first, then the defaults (never routers / classifiers)
+  function chainFor(primary, list) {
+    if (!isOR()) return [primary || list[0]];   // another OpenAI-compatible provider: only the model the user named
+    var out = [];
+    [primary].concat(list).forEach(function (m) { if (m && !blockedModel(m) && out.indexOf(m) < 0) out.push(m); });
+    return out.length ? out : list.slice();
+  }
   function reqBody(models, extra) {
     var body = { model: models[0], temperature: 0.5, max_tokens: 1200 };
-    if (isOR()) { body.models = models.filter(function (m, i) { return models.indexOf(m) === i; }).slice(0, 3); body.reasoning = { exclude: true }; }
+    if (isOR()) { body.models = models.slice(0, 3); body.reasoning = { exclude: true }; }
     Object.keys(extra).forEach(function (k) { body[k] = extra[k]; });
     return body;
   }
+  // a reply that is empty, tiny or looks like a moderation/classifier verdict is not an answer
+  var CLS_LINE = /^(safe|unsafe|(user|response|prompt|assistant)\s+safety\b.*|safety\s+categor(y|ies)\b.*|categor(y|ies)\s*:.*|s\d{1,2}\s*[:,.-]?.*|(not\s+)?harmful\.?|(un)?safe\s*[.,;:]?)$/i;
+  function badReply(t) {
+    var s = String(t || '').replace(/<[^>]+>/g, ' ').replace(/[*_`#>]+/g, '').trim();
+    if (s.length < 15) return 'пустой или слишком короткий ответ';
+    if (/^\s*(user|response|prompt)\s+safety\s*:/im.test(s)) return 'ответила модель-классификатор';
+    var lines = s.split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean);
+    if (lines.length && lines.every(function (l) { return CLS_LINE.test(l); })) return 'ответила модель-классификатор';
+    return null;
+  }
+  function badErr(why, model) { var e = new CloudError(0, why, 'bad'); e.model = model; return e; }
+  function fatalErr(e) { return !!e && (e.status === 401 || e.status === 402 || e.status === 403 || e.status === 429); }
   function headers() { return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey(), 'X-Title': 'Zdorovie' }; }
   function readErr(r) {
     return r.text().then(function (t) {
@@ -936,12 +959,12 @@
       throw new CloudError(r.status, String(msg), j && j.error && j.error.code);
     });
   }
-  // streams the reply; onDelta(fullTextSoFar). Resolves { text, model }
-  function streamChat(messages, onDelta) {
+  // one request (OpenRouter may still switch between the ≤3 vetted `models` itself). Text is only shown once it
+  // clearly is a real answer (≥ 60 chars, not a classifier verdict, model not blocked). Resolves { text, model }.
+  function streamOnce(messages, models, onDelta) {
     var ctl = window.AbortController ? new AbortController() : null, timer = null;
     var arm = function (ms) { clearTimeout(timer); timer = setTimeout(function () { if (ctl) ctl.abort(); }, ms); };
     arm(45000);
-    var models = [S.model || DEFAULT_MODEL].concat(CHAT_FALLBACKS);
     return fetch(apiBase() + '/chat/completions', { method: 'POST', signal: ctl ? ctl.signal : undefined, headers: headers(), body: JSON.stringify(reqBody(models, { messages: messages, stream: true })) })
       .then(function (r) {
         if (!r.ok) return readErr(r);
@@ -949,12 +972,15 @@
         if (!r.body || !r.body.getReader || ct.indexOf('json') >= 0) {
           return r.json().then(function (j) {
             if (j.error) throw new CloudError(j.error.code || 500, j.error.message || 'ошибка');
+            var md = j.model || models[0];
+            if (blockedModel(md)) throw badErr('ответила служебная модель ' + md, md);
             var c = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
-            if (!c || !String(c).trim()) throw new CloudError(0, 'пустой ответ');
-            onDelta(String(c)); return { text: String(c).trim(), model: j.model || models[0] };
+            if (Array.isArray(c)) c = c.map(function (x) { return x.text || ''; }).join('');
+            var bad = badReply(c); if (bad) throw badErr(bad, md);
+            onDelta(String(c)); return { text: String(c).trim(), model: md };
           });
         }
-        var reader = r.body.getReader(), dec = new TextDecoder(), buf = '', text = '', model = models[0], done = false;
+        var reader = r.body.getReader(), dec = new TextDecoder(), buf = '', text = '', model = models[0], done = false, shown = false;
         function pump() {
           return reader.read().then(function (res) {
             if (res.done) return;
@@ -968,22 +994,47 @@
               if (data === '[DONE]') { done = true; break; }
               var j; try { j = JSON.parse(data); } catch (e) { continue; }
               if (j.error) throw new CloudError(j.error.code || 500, j.error.message || 'ошибка');
-              if (j.model) model = j.model;
+              if (j.model) { model = j.model; if (blockedModel(model)) { try { reader.cancel(); } catch (e) { /* ignore */ } throw badErr('ответила служебная модель ' + model, model); } }
               var ch = j.choices && j.choices[0];
               if (ch && ch.finish_reason === 'error') throw new CloudError(500, 'ошибка во время ответа');
               var dt = ch && ch.delta && ch.delta.content;
-              if (dt) { text += dt; onDelta(text); }
+              if (dt) {
+                text += dt;
+                if (!shown && text.trim().length >= 60 && !badReply(text)) shown = true;
+                if (shown) onDelta(text);
+              }
             }
             if (done) { try { reader.cancel(); } catch (e) { /* ignore */ } return; }
             return pump();
           });
         }
         return pump().then(function () {
-          if (!text.trim()) throw new CloudError(0, 'пустой ответ');
+          var bad = badReply(text); if (bad) throw badErr(bad, model);
+          if (!shown) onDelta(text);
           return { text: text.trim(), model: model };
         });
       })
       .then(function (x) { clearTimeout(timer); return x; }, function (e) { clearTimeout(timer); throw e; });
+  }
+  // tries the vetted chain: a junk / classifier reply or a model error → next model; key/limit errors stop at once
+  function withFallback(chain, run, onSkip) {
+    var i = 0, n = 0, lastErr = null;
+    function attempt() {
+      if (i >= chain.length || n >= 4) return Promise.reject(lastErr || new CloudError(0, 'нет доступных моделей'));
+      var models = chain.slice(i, i + 3); n++;
+      return run(models).catch(function (e) {
+        lastErr = e;
+        if (fatalErr(e)) throw e;
+        var j = e.model ? chain.indexOf(e.model) : -1;
+        i = e.code === 'bad' ? (j >= i ? j + 1 : i + 1) : i + models.length;
+        if (onSkip) onSkip(e);
+        return attempt();
+      });
+    }
+    return attempt();
+  }
+  function streamChat(messages, onDelta) {
+    return withFallback(chainFor(S.model || DEFAULT_MODEL, CHAT_MODELS), function (models) { return streamOnce(messages, models, onDelta); }, function () { onDelta(''); });
   }
   function checkKey() {
     return fetch(apiBase() + '/key', { headers: { Authorization: 'Bearer ' + apiKey() } }).then(function (r) {
@@ -1045,25 +1096,31 @@
     var k = it.g0 ? it.g / it.g0 : 1;
     return { kcal: it.ai.kcal * k, p: it.ai.p * k, f: it.ai.f * k, c: it.ai.c * k };
   }
-  function recognize(dataUrl) {
+  function recognizeOnce(dataUrl, models) {
     var ctl = window.AbortController ? new AbortController() : null, timer = setTimeout(function () { if (ctl) ctl.abort(); }, 75000);
-    var models = [S.vmodel || DEFAULT_VMODEL].concat(VISION_FALLBACKS);
     return fetch(apiBase() + '/chat/completions', { method: 'POST', signal: ctl ? ctl.signal : undefined, headers: headers(),
       body: JSON.stringify(reqBody(models, { temperature: 0.2, max_tokens: 900, messages: [{ role: 'user', content: [{ type: 'text', text: PHOTO_PROMPT }, { type: 'image_url', image_url: { url: dataUrl } }] }] })) })
       .then(function (r) {
         if (!r.ok) return readErr(r);
         return r.json().then(function (j) {
           if (j.error) throw new CloudError(j.error.code || 500, j.error.message || 'ошибка');
+          var md = j.model || models[0];
+          if (blockedModel(md)) throw badErr('ответила служебная модель ' + md, md);
           var c = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
           if (Array.isArray(c)) c = c.map(function (x) { return x.text || ''; }).join('');
-          var P = parsePhotoJSON(c);
-          P.model = j.model || models[0];
+          var P;
+          try { P = parsePhotoJSON(c); } catch (e) { throw badErr('модель ответила не в формате JSON', md); }
+          P.model = md;
           matchPhotoItems(P.items);
           return P;
         });
       })
       .then(function (x) { clearTimeout(timer); return x; }, function (e) { clearTimeout(timer); throw e; });
   }
+  function recognize(dataUrl) {
+    return withFallback(chainFor(S.vmodel || DEFAULT_VMODEL, VISION_MODELS), function (models) { return recognizeOnce(dataUrl, models); });
+  }
+
   function photoCard(id, P) {
     if (!P) return '<div class="ai-photo-card muted small">Результат распознавания удалён.</div>';
     if (!P.items.length) return '<div class="ai-photo-card"><b>Еда не найдена на фото.</b><p class="muted small">' + esc(P.comment || 'Попробуй сфотографировать тарелку сверху при хорошем свете.') + '</p></div>';
@@ -1141,15 +1198,36 @@
       (bk ? '<p class="small">🔑 В приложение встроен общий ключ' + (src === 'build' ? ' — он используется сейчас' : ' (сейчас используется твой)') + '. Встроенный ключ общий для всех пользователей, его лимиты быстро заканчиваются — свой ключ надёжнее.</p>' : '') +
       '<label class="jw-check' + (!S.cloudOff ? ' on' : '') + '"><input type="checkbox" id="aiCloud"' + (!S.cloudOff ? ' checked' : '') + '><span class="jw-ci">☁️</span><span class="grow"><b>Облачный ИИ</b><small>' + (apiKey() ? 'при ошибке ответит встроенный анализатор' : 'включится, когда будет ключ') + '</small></span><span class="jw-tick"></span></label>' +
       '<label class="fc-field"><span>Твой API-ключ OpenRouter</span><input id="aiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-or-v1-…" value="' + esc(S.key || '') + '"></label>' +
-      '<label class="fc-field"><span>Модель для чата</span><input id="aiModel" type="text" autocomplete="off" spellcheck="false" list="aiModels" value="' + esc(S.model || DEFAULT_MODEL) + '"></label>' +
-      '<label class="fc-field"><span>Модель для фото (должна понимать изображения)</span><input id="aiVModel" type="text" autocomplete="off" spellcheck="false" list="aiVModels" value="' + esc(S.vmodel || DEFAULT_VMODEL) + '"></label>' +
+      modelSelect('aiModel', 'Модель для чата', CHAT_MODELS, S.model || DEFAULT_MODEL) +
+      modelSelect('aiVModel', 'Модель для фото (понимает изображения)', VISION_MODELS, S.vmodel || DEFAULT_VMODEL) +
+      '<p class="muted small">Только проверенные бесплатные модели. Если выбранная занята или ответит не по делу, ассистент сам попробует следующую из списка.</p>' +
       '<details class="ai-adv"><summary class="small">Другой провайдер (OpenAI-совместимый API)</summary><label class="fc-field"><span>Адрес API</span><input id="aiBase" type="url" autocomplete="off" spellcheck="false" placeholder="' + OR_BASE + '" value="' + esc(S.base || '') + '"></label><p class="muted small">Например, российский агрегатор с OpenAI-совместимым API. Сервис должен разрешать запросы из браузера (CORS). Ключ и модель укажи от этого сервиса.</p></details>' +
-      '<datalist id="aiModels">' + MODELS.map(function (m) { return '<option value="' + m + '">'; }).join('') + '</datalist>' +
-      '<datalist id="aiVModels">' + VMODELS.map(function (m) { return '<option value="' + m + '">'; }).join('') + '</datalist>' +
       '<div class="btn-grid"><button type="button" class="btn primary" data-ai="save">Сохранить</button><button type="button" class="btn" data-ai="check"' + (apiKey() ? '' : ' disabled') + '>Проверить ключ</button><button type="button" class="btn danger wide" data-ai="forget">Удалить мой ключ</button></div>' +
       (keyInfo ? '<p class="small ai-keyinfo">' + keyInfo + '</p>' : '') +
       '<p class="muted small">Ключ: openrouter.ai → Keys (бесплатно). Модели с «:free» бесплатны, но с лимитами: до 20 запросов в минуту и 50 в день (1000 в день, если на аккаунт когда-либо зачислено от $10). Важно: с лета 2026 OpenRouter ограничивает аккаунты и подключения из России — может понадобиться VPN или другой провайдер. Ключ хранится только на этом устройстве.</p></section>';
   }
+  // dropdown of vetted models; for another provider (custom API address) a free-text model id is allowed
+  function modelSelect(id, label, list, cur) {
+    var custom = list.indexOf(cur) < 0;
+    return '<label class="fc-field"><span>' + label + '</span><select id="' + id + '" class="ai-model-sel">' +
+      list.map(function (m) { return '<option value="' + esc(m) + '"' + (m === cur ? ' selected' : '') + '>' + esc(MODEL_NAMES[m] || m) + '</option>'; }).join('') +
+      '<option value="__custom"' + (custom ? ' selected' : '') + '>Другая (для другого провайдера)…</option></select></label>' +
+      '<input id="' + id + 'Custom" class="ai-model-custom" type="text" autocomplete="off" spellcheck="false" placeholder="id модели"' + (custom ? ' value="' + esc(cur) + '"' : ' hidden') + '>';
+  }
+  function readModel(id, def) {
+    var sel = document.getElementById(id); if (!sel) return def;
+    if (sel.value !== '__custom') return sel.value;
+    return (document.getElementById(id + 'Custom').value || '').trim() || def;
+  }
+  // a nutrition answer from the cloud must carry the database numbers; append them when the model left them out
+  function dbLine(loc) {
+    var f = loc && loc.food && A().foodById ? A().foodById(loc.food) : null; if (!f) return null;
+    var u = unitOf(f), g = S.ctx.lastG, v = g ? per(f, g) : null;
+    return { f: f, kcal: Math.round(f.kcal), gk: v ? Math.round(v.kcal) : null,
+      h: '<p class="ai-dbline">📊 По базе приложения: <b>' + esc(f.ru) + '</b> — на 100 ' + u + ': ' + num(f.kcal, 0) + ' ккал · Б ' + num(f.p) + ' · Ж ' + num(f.f) + ' · У ' + num(f.c) + ' г' +
+        (v ? '; на ' + num(Math.round(g), 0) + ' ' + u + ': ' + num(v.kcal, 0) + ' ккал · Б ' + num(v.p) + ' · Ж ' + num(v.f) + ' · У ' + num(v.c) + ' г' : '') + '.</p>' };
+  }
+  function hasNum(text, n) { if (n === null || n === undefined) return false; var t = String(text).replace(/[\s\u00a0\u202f]/g, ''); return new RegExp('(^|[^0-9])' + n + '([^0-9]|$)').test(t); }
   function scrollLog() { var log = document.getElementById('aiLog'); if (log) log.scrollTop = log.scrollHeight; }
   var paintT = 0;
   function paintStream() {
@@ -1169,12 +1247,19 @@
     var grounding = /^(fallback|help|wait)$/.test(loc.kind) ? '' : htmlToText(local).slice(0, 2500);
     var messages = [{ role: 'system', content: systemPrompt(grounding, foodRefFor(text)) }].concat(hist).concat([{ role: 'user', content: text }]);
     busy = true; streamText = null; save(); render();
-    streamChat(messages, function (t) { streamText = t; paintStream(); }).then(function (r) {
-      // keep the built-in food «＋ В дневник» buttons under a cloud answer about a product
-      var extra = loc.kind === 'food' && loc.food && A().foodById(loc.food) ? '<div class="ai-inchips">' + addBtn(A().foodById(loc.food), (S.ctx.lastG || A().foodById(loc.food).por || 100)) + '</div>' : '';
+    streamChat(messages, function (t) { streamText = t || null; paintStream(); }).then(function (r) {
+      var extra = '';
+      if (loc.kind === 'food') {
+        var db = dbLine(loc);
+        if (db) {
+          if (!hasNum(r.text, db.kcal) && !hasNum(r.text, db.gk)) extra += db.h;
+          // keep the built-in food «＋ В дневник» button under a cloud answer about a product
+          extra += '<div class="ai-inchips">' + addBtn(db.f, (S.ctx.lastG || db.f.por || 100)) + '</div>';
+        }
+      }
       S.msgs.push({ r: 'a', h: mdToHtml(r.text) + extra, src: 'облачный ИИ · ' + String(r.model || '').replace(/:free$/, ''), at: Date.now() });
     }, function (e) {
-      var partial = streamText && streamText.trim().length > 40;
+      var partial = e.code !== 'bad' && streamText && streamText.trim().length > 40;
       S.msgs.push({ r: 'a', h: partial ? mdToHtml(streamText) + '<br><span class="muted">…ответ оборвался.</span>' : local, src: 'облачный ИИ: ' + errText(e) + (partial ? '' : ' — ответил встроенный анализатор'), at: Date.now() });
     }).then(function () { busy = false; streamText = null; save(); render(); });
   }
@@ -1268,9 +1353,10 @@
     else if (act === 'photo') photoButton('chat');
     else if (act === 'clear') { if (confirm('Очистить переписку с ассистентом?')) { S.msgs = []; S.ctx = {}; save(); render(); } }
     else if (act === 'save') {
-      var k = (document.getElementById('aiKey').value || '').trim(), m = (document.getElementById('aiModel').value || '').trim(), vm = (document.getElementById('aiVModel').value || '').trim(), base = (document.getElementById('aiBase').value || '').trim();
+      var k = (document.getElementById('aiKey').value || '').trim(), m = readModel('aiModel', DEFAULT_MODEL), vm = readModel('aiVModel', DEFAULT_VMODEL), base = (document.getElementById('aiBase').value || '').trim();
       if (base && !/^https:\/\/[^\s]+$/i.test(base)) { if (window.HTPro) window.HTPro.toast('Адрес API должен начинаться с https://'); return; }
-      S.key = k || null; S.model = m || DEFAULT_MODEL; S.modelSet = !!m; S.vmodel = vm || DEFAULT_VMODEL; S.base = base.replace(/\/+$/, '') || null;
+      if (blockedModel(m) || blockedModel(vm)) { if (window.HTPro) window.HTPro.toast('Эта модель не подходит для чата (служебная модель или роутер) — выбери из списка'); return; }
+      S.key = k || null; S.model = m; S.modelSet = m !== DEFAULT_MODEL; S.vmodel = vm || DEFAULT_VMODEL; S.base = base.replace(/\/+$/, '') || null;
       S.cloudOff = !document.getElementById('aiCloud').checked;
       save(); showSettings = false; render(); if (window.HTPro) window.HTPro.toast(cloudOn() ? 'Облачный ИИ включён' : 'Сохранено');
     } else if (act === 'check') {
@@ -1284,6 +1370,7 @@
   document.addEventListener('change', function (e) {
     var t = e.target; if (!t) return;
     if (t.id === 'aiCloud') t.closest('.jw-check').classList.toggle('on', t.checked);
+    if (t.classList && t.classList.contains('ai-model-sel')) { var cu = document.getElementById(t.id + 'Custom'); if (cu) { cu.hidden = t.value !== '__custom'; if (!cu.hidden) cu.focus(); } }
     if (t.id === 'aiPhotoInput' && t.files && t.files[0]) chatPhoto(t.files[0]);
     if (t.id === 'foodPhotoInput' && t.files && t.files[0]) foodPhoto(t.files[0]);
   });
@@ -1298,6 +1385,6 @@
   window.AIModule = {
     render: render, answer: answer, answerFull: answerFull, ask: ask, _summary: dataSummary, _system: systemPrompt,
     _parsePhoto: parsePhotoJSON, _match: matchPhotoItems, _search: function (q) { var pq = parseFoodQ(norm(q)); return searchDB(pq.words).list.slice(0, 5).map(function (f) { return f.ru; }); },
-    cloudOn: cloudOn, reset: function () { S.ctx = {}; }
+    cloudOn: cloudOn, _badReply: badReply, _blocked: blockedModel, _chain: function () { return chainFor(S.model || DEFAULT_MODEL, CHAT_MODELS); }, reset: function () { S.ctx = {}; }
   };
 })();

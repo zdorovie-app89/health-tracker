@@ -1398,7 +1398,8 @@
     var payload = { app: 'health-tracker', version: 2, exportedAt: new Date().toISOString(), settings: settings, data: data, food: food,
       plan: { form: planStore.form, plan: planStore.plan, at: planStore.at },
       history: window.HistoryModule ? window.HistoryModule.exportData() : undefined,
-      modules: { jaw: readJSON('health.jaw.v1', null), skin: readJSON('health.skin.v1', null) } };
+      modules: { jaw: readJSON('health.jaw.v1', null), skin: readJSON('health.skin.v1', null) },
+      userId: window.HTPro && window.HTPro.userId ? window.HTPro.userId() : undefined };
     download('health-data-' + todayKey() + '.json', JSON.stringify(payload, null, 2), 'application/json');
     toast(t('data.downloaded'));
   }
@@ -1431,11 +1432,18 @@
       var nFood = foodCount(inFood);
       var nHist = obj.history && Array.isArray(obj.history.workouts) ? obj.history.workouts.length : 0;
       var n = ORDER.reduce(function (s, id) { return s + Object.keys(incoming[id]).length; }, 0) + nFood + nHist;
-      if (!n) { toast(t('data.noValid')); return; }
+      var HP = window.HTPro, idNew = typeof obj.userId === 'string' && HP && HP.validId && HP.validId(obj.userId) && obj.userId !== HP.userId() ? obj.userId : null;
+      var askId = function () { return idNew && confirm('Восстановить твой ID из копии: ' + idNew + '? (сейчас на этом устройстве ' + HP.userId() + '). Ключи, привязанные к ID из копии, снова заработают.'); };
+      if (!n) {
+        if (idNew) { if (askId()) { HP.setUserId(idNew); toast('ID восстановлен: ' + idNew); } return; }
+        toast(t('data.noValid')); return;
+      }
       if (!confirm(t('data.confirmImport', { n: plural(n, 'w.entry') }))) return;
       ORDER.forEach(function (id) { Object.keys(incoming[id]).forEach(function (k) { store.data[id][k] = incoming[id][k]; }); });
       if (nFood) { Object.keys(inFood).forEach(function (k) { food[k] = inFood[k]; }); saveFood(); }
       if (nHist && window.HistoryModule) window.HistoryModule.importData(obj.history);
+      // v8.1: personal ID (keys can be bound to it) — restored from the backup, e.g. after reinstalling the app
+      if (askId()) HP.setUserId(idNew);
       // jaw / skincare progress: only restored on a device that has none yet (never overwrites local progress)
       if (obj.modules && typeof obj.modules === 'object') {
         var jw = obj.modules.jaw, sk = obj.modules.skin, lj = readJSON('health.jaw.v1', null), ls = readJSON('health.skin.v1', null);
