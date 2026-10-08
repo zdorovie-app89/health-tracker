@@ -300,6 +300,7 @@ var SKIN_PRESET = null;
     if (t.hasAttribute('data-step')) {
       var k = dkey(); S.checks[k] = S.checks[k] || {};
       if (t.checked) S.checks[k][t.getAttribute('data-step')] = true; else delete S.checks[k][t.getAttribute('data-step')];
+      if (t.checked) { S.at = S.at || {}; S.at[k] = Date.now(); }
       save(); var y = window.scrollY; render(); window.scrollTo(0, y);
     }
   });
@@ -326,5 +327,17 @@ var SKIN_PRESET = null;
       anyChecks: Object.keys(S.checks).some(function (k) { return Object.keys(S.checks[k] || {}).length > 0; }), basic: !pro() || !r
     };
   }
-  window.SkinModule = { render: render, summary: summary, stats: stats, TYPES: TYPES, buildRoutine: buildRoutine };
+  // v8: days with ticked skincare steps for the activity history (history.js) and the AI assistant
+  function history() {
+    var names = {}, add = function (r) { r.am.forEach(function (s) { names[s.id] = { t: s.t, ic: s.ic, pm: false }; }); r.pm.forEach(function (s) { names[s.id] = { t: s.t, ic: s.ic, pm: true }; }); };
+    add(basicRoutine()); if (S.result && TYPES[S.result.type]) add(buildRoutine(S.result.type, S.result.acne));
+    return Object.keys(S.checks).sort().map(function (k) {
+      var ids = Object.keys(S.checks[k] || {}).filter(function (id) { return S.checks[k][id]; });
+      if (!ids.length) return null;
+      var p = k.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2], 12);
+      return { date: k, at: (S.at && S.at[k]) || null, full: dayDone(d),
+        steps: ids.map(function (id) { var n = names[id]; return { id: id, t: n ? n.t : id, ic: n ? n.ic : '•', pm: n ? n.pm : /^pm/.test(id) }; }) };
+    }).filter(Boolean);
+  }
+  window.SkinModule = { render: render, summary: summary, stats: stats, history: history, TYPES: TYPES, buildRoutine: buildRoutine };
 })();

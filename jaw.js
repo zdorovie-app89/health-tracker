@@ -379,7 +379,7 @@
   }
   function completeDay() {
     var day = W.day;
-    if (!S.completed[day]) S.completed[day] = dkey();
+    if (!S.completed[day]) { S.completed[day] = dkey(); S.times = S.times || {}; S.times[day] = Date.now(); }
     save(); stopWorkout(); ensureAudio(); beepDone();
     var dc = doneCount(), st = streak(), all = dc === TOTAL;
     var photoNext = D.PHOTO_DAYS.indexOf(day) >= 0 && !S.photos[day];
@@ -509,5 +509,15 @@
     };
   }
 
-  window.JawModule = { render: render, leave: leave, summary: summary, stats: stats };
+  // v8: completed sessions for the activity history (history.js) and the AI assistant
+  function history() {
+    var out = [];
+    for (var i = 1; i <= TOTAL; i++) {
+      if (!S.completed[i]) continue;
+      out.push({ day: i, date: S.completed[i], at: (S.times && S.times[i]) || null, minutes: dayMinutes(i),
+        items: PLAN[i - 1].filter(function (id) { return EX[id] && EX[id].type !== 'info'; }).map(function (id) { return { name: EX[id].name, dose: doseText(id, dose(id, i)) }; }) });
+    }
+    return out;
+  }
+  window.JawModule = { render: render, leave: leave, summary: summary, stats: stats, history: history };
 })();

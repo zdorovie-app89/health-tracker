@@ -274,6 +274,12 @@
     ['brisket_smoked', 'meat', 'Грудинка копчёная', 'Smoked pork belly', 507, 7.6, 53, 0, 20, 'грудинка копченая свиная корейка pork belly smoked'],
     ['liver_pate', 'meat', 'Паштет печёночный', 'Liver pâté', 301, 11.5, 27, 3, 30, 'паштет печеночный печень pate pate liver'],
     ['beef_jerky', 'meat', 'Вяленое мясо / джерки', 'Beef jerky', 406, 33, 25.6, 11, 25, 'джерки вяленое мясо сушеное снек jerky'],
+    ['beef_marbled_raw', 'meat', 'Говядина мраморная (рибай, сырая)', 'Marbled beef / ribeye (raw)', 280, 18, 23, 0, 0, 'говядина мраморная мраморное мясо рибай стейк ribeye marbled beef сырая'],
+    ['ribeye_grilled', 'meat', 'Стейк рибай (мраморная говядина, жареный)', 'Ribeye steak (grilled)', 290, 24, 21.5, 0, 250, 'стейк рибай мраморная мраморное говядина мясо жареный ribeye steak'],
+    ['striploin_steak', 'meat', 'Стейк стриплойн / нью-йорк (жареный)', 'Striploin / New York steak (grilled)', 240, 25, 15.5, 0, 250, 'стейк стриплойн нью йорк говядина мраморная мясо striploin new york steak'],
+    ['tbone_steak', 'meat', 'Стейк ти-бон (жареный)', 'T-bone steak (grilled)', 255, 24, 17.5, 0, 300, 'стейк ти бон тибон говядина мясо t bone steak'],
+    ['filet_mignon', 'meat', 'Стейк филе-миньон (жареный)', 'Filet mignon (grilled)', 210, 28, 10.8, 0, 200, 'стейк филе миньон вырезка говядина мясо filet mignon'],
+    ['wagyu_raw', 'meat', 'Говядина вагю (сырая)', 'Wagyu beef (raw)', 450, 13, 44, 0, 0, 'вагю ваги мраморная говядина мясо wagyu marbled beef'],
     // ---------- v2 additions: fish & seafood ----------
     ['salmon_baked', 'fish', 'Сёмга / лосось запечённый', 'Salmon (baked)', 200, 22.1, 12.4, 0, 150, 'семга лосось красная рыба запеченная salmon baked'],
     ['salmon_salted', 'fish', 'Сёмга слабосолёная', 'Lightly salted salmon', 202, 22.5, 12.5, 0, 40, 'семга лосось слабосоленая соленая красная рыба форель salted salmon'],

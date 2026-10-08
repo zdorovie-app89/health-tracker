@@ -69,7 +69,7 @@
     if (!naclPromise) {
       naclPromise = new Promise(function (res, rej) {
         var s = document.createElement('script');
-        s.src = 'vendor/nacl.min.js?v=7';
+        s.src = 'vendor/nacl.min.js?v=8';
         s.onload = function () { window.nacl && window.nacl.sign ? res(window.nacl) : rej(new Error('nacl')); };
         s.onerror = function () { naclPromise = null; rej(new Error('nacl load')); };
         document.head.appendChild(s);
@@ -342,7 +342,8 @@
     var root = document.getElementById('buyRoot'); if (!root) return;
     var st = status || compute(), l = statusLine(st);
     var feats = [
-      ['🤖', 'ИИ-ассистент', 'отвечает на вопросы по твоим данным: сон, еда, тренировки'],
+      ['🤖', 'ИИ-ассистент', 'отвечает по твоим данным, знает КБЖУ продуктов; с облачным ИИ — свободный чат и распознавание еды по фото'],
+      ['📒', 'Графики прогресса по упражнениям', 'рост веса и повторов по каждому упражнению из истории тренировок'],
       ['💪', 'Вся программа «Челюсть 30 дней»', 'недели 2–4 и финал, а не только первая неделя'],
       ['🧴', 'Персональный уход за кожей', 'тест на тип кожи, кислоты и шаги под твою кожу'],
       ['📈', 'Вся статистика и тренды', 'годовая карта, «всё время», рекорды и серии'],

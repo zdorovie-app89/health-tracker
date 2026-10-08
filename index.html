@@ -15,10 +15,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="styles.css?v=7">
-  <link rel="stylesheet" href="face.css?v=7">
-  <link rel="stylesheet" href="theme.css?v=7">
-  <link rel="stylesheet" href="pro.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="face.css?v=8">
+  <link rel="stylesheet" href="theme.css?v=8">
+  <link rel="stylesheet" href="pro.css?v=8">
 </head>
 <body>
   <main class="app">
@@ -34,6 +34,8 @@
       </header>
 
       <a class="pro-banner" id="proBanner" href="#buy" hidden></a>
+
+      <div id="hsLiveToday"></div>
 
       <div class="cards" id="todayCards"></div>
 
@@ -144,6 +146,12 @@
         </div>
         <div class="stats" id="stats"></div>
       </section>
+
+      <a class="promo-card hs-promo" href="#history">
+        <span class="promo-ico" aria-hidden="true">📒</span>
+        <span class="promo-txt"><b>История</b><small>Тренировки по дням, подходы и веса, челюсть, уход</small></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
     </section>
 
     <!-- ============ PROFILE ============ -->
@@ -155,6 +163,11 @@
       <a class="promo-card ai-promo" href="#ai">
         <span class="promo-ico" aria-hidden="true">🤖</span>
         <span class="promo-txt"><b>ИИ-ассистент <span class="pro-tag">Pro</span></b><small>Ответы по твоим данным · настройки</small></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
+      <a class="promo-card hs-promo" href="#history">
+        <span class="promo-ico" aria-hidden="true">📒</span>
+        <span class="promo-txt"><b>История</b><small>Тренировки по дням, подходы и веса, челюсть, уход</small></span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
       </a>
 
@@ -201,7 +214,7 @@
       </section>
 
 
-      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">v7</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
+      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">v8</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
     </section>
 
     <!-- ============ FOOD (diary + coach tips, fully offline) ============ -->
@@ -230,6 +243,11 @@
             <input id="foodSearch" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" maxlength="60"
                    data-i18n-ph="food.searchPh" placeholder="Найти: гречка, курица, банан…" data-i18n-aria="food.searchPh" aria-label="Найти продукт">
           </label>
+          <div class="food-photo-row">
+            <button type="button" class="btn small food-photo-btn" data-ai-photo="food"><span aria-hidden="true">📷</span> Распознать по фото <span class="pro-tag">Pro</span></button>
+            <input type="file" id="foodPhotoInput" accept="image/*" hidden>
+          </div>
+          <div id="foodPhotoBox"></div>
           <div class="food-results" id="foodResults"></div>
           <div class="food-pick" id="foodPick" hidden></div>
         </div>
@@ -276,6 +294,13 @@
         </div>
       </header>
 
+      <div id="hsLiveWk"></div>
+      <a class="promo-card hs-promo" href="#history">
+        <span class="promo-ico" aria-hidden="true">📒</span>
+        <span class="promo-txt"><b>История</b><small>Тренировки по дням, подходы и веса, челюсть, уход</small></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
+
       <form class="card wk-form" id="wkForm" novalidate>
         <div class="wk-nums">
           <label class="wk-num"><span data-i18n="wk.age">Возраст</span><input class="num-input" id="wkAge" type="text" inputmode="numeric" maxlength="3" placeholder="30"></label>
@@ -311,6 +336,7 @@
     <!-- ============ v7: «Купить Про» (pro.js) + ИИ-ассистент (ai.js) ============ -->
     <section class="view" id="view-buy" data-view="buy" hidden><div id="buyRoot"></div></section>
     <section class="view" id="view-ai" data-view="ai" hidden><div id="aiRoot"></div></section>
+    <section class="view" id="view-history" data-view="history" hidden><div id="historyRoot"></div></section>
   </main>
 
   <!-- Bottom navigation -->
@@ -390,16 +416,18 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="license-data.js?v=7" defer></script>
-  <script src="pro.js?v=7" defer></script>
-  <script src="foods.js?v=7" defer></script>
-  <script src="exercises.js?v=7" defer></script>
-  <script src="tips.js?v=7" defer></script>
-  <script src="jaw-data.js?v=7" defer></script>
-  <script src="jaw.js?v=7" defer></script>
-  <script src="skin.js?v=7" defer></script>
-  <script src="ai.js?v=7" defer></script>
-  <script src="app.js?v=7" defer></script>
+  <script src="license-data.js?v=8" defer></script>
+  <script src="pro.js?v=8" defer></script>
+  <script src="foods.js?v=8" defer></script>
+  <script src="exercises.js?v=8" defer></script>
+  <script src="tips.js?v=8" defer></script>
+  <script src="jaw-data.js?v=8" defer></script>
+  <script src="jaw.js?v=8" defer></script>
+  <script src="skin.js?v=8" defer></script>
+  <script src="history.js?v=8" defer></script>
+  <script src="ai-config.js?v=8" defer></script>
+  <script src="ai.js?v=8" defer></script>
+  <script src="app.js?v=8" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
       var hadController = !!navigator.serviceWorker.controller;

@@ -6,28 +6,32 @@
  * v6: violet-blue theme (theme.css) + new icon (icons/icon.svg).
  * v7: open app (no lock screen) + Pro (license-data.js, pro.js, vendor/nacl.min.js), AI assistant (ai.js), pro.css,
  *     exercise illustrations img/ex/*.svg + img/jaw/*.svg (cached in the background after install).
- *     revoked.json (key revocation list + server time) is never cached. */
+ *     revoked.json (key revocation list + server time) is never cached.
+ * v8: activity history (history.js), AI chat via LLM + food photo (ai.js, ai-config.js); pages and app files are
+ *     revalidated with the server (cache: no-cache) so a new release is picked up immediately. */
 'use strict';
 
-var CACHE_VERSION = 'health-tracker-v7';
+var CACHE_VERSION = 'health-tracker-v8';
 var APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=7',
-  './face.css?v=7',
-  './theme.css?v=7',
-  './pro.css?v=7',
-  './license-data.js?v=7',
-  './pro.js?v=7',
-  './foods.js?v=7',
-  './exercises.js?v=7',
-  './tips.js?v=7',
-  './jaw-data.js?v=7',
-  './jaw.js?v=7',
-  './skin.js?v=7',
-  './ai.js?v=7',
-  './app.js?v=7',
-  './vendor/nacl.min.js?v=7',
+  './styles.css?v=8',
+  './face.css?v=8',
+  './theme.css?v=8',
+  './pro.css?v=8',
+  './license-data.js?v=8',
+  './pro.js?v=8',
+  './foods.js?v=8',
+  './exercises.js?v=8',
+  './tips.js?v=8',
+  './jaw-data.js?v=8',
+  './jaw.js?v=8',
+  './skin.js?v=8',
+  './history.js?v=8',
+  './ai-config.js?v=8',
+  './ai.js?v=8',
+  './app.js?v=8',
+  './vendor/nacl.min.js?v=8',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -157,7 +161,8 @@ self.addEventListener('fetch', function (event) {
   var isNav = req.mode === 'navigate';
 
   event.respondWith(
-    fetch(req).then(function (res) {
+    // versioned files (?v=) can use the HTTP cache; the page and unversioned files are revalidated (cheap 304)
+    (isNav || !url.search ? fetch(isNav ? new Request(url.href, { cache: 'no-cache', credentials: 'same-origin' }) : new Request(req, { cache: 'no-cache' })) : fetch(req)).then(function (res) {
       if (res && res.ok) {
         var copy = res.clone();
         caches.open(CACHE_VERSION).then(function (c) { c.put(isNav ? './index.html' : req, copy); });

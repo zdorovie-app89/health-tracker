@@ -1177,7 +1177,8 @@
   function parseHash() {
     var parts = (location.hash || '').replace(/^#/, '').split('/');
     if (parts[0] === 'chat') parts[0] = 'food';   // old links / home-screen shortcuts
-    var view = ['today', 'trends', 'food', 'workouts', 'profile', 'jaw', 'skin', 'buy', 'ai'].indexOf(parts[0]) >= 0 ? parts[0] : 'today';
+    var view = ['today', 'trends', 'food', 'workouts', 'profile', 'jaw', 'skin', 'buy', 'ai', 'history'].indexOf(parts[0]) >= 0 ? parts[0] : 'today';
+    state.sub = parts.slice(1);
     if (view === 'trends' && METRICS[parts[1]]) state.metric = parts[1];
     return view;
   }
@@ -1189,7 +1190,7 @@
     var prevView = state.view, prevMetric = state.metric;
     state.view = parseHash();
     document.querySelectorAll('.view').forEach(function (v) { v.hidden = v.dataset.view !== state.view; });
-    var navView = state.view === 'workouts' ? 'food' : (state.view === 'jaw' || state.view === 'skin') ? 'face' : state.view === 'buy' ? 'profile' : state.view === 'ai' ? 'today' : state.view;
+    var navView = (state.view === 'workouts' || state.view === 'history') ? 'food' : (state.view === 'jaw' || state.view === 'skin') ? 'face' : state.view === 'buy' ? 'profile' : state.view === 'ai' ? 'today' : state.view;
     if (state.view !== 'jaw' && window.JawModule) window.JawModule.leave();   // v5: stop a running jaw workout timer
     document.querySelectorAll('.tab[data-tab]').forEach(function (tb) {
       tb.classList.toggle('active', tb.dataset.tab === navView);
@@ -1208,8 +1209,13 @@
     else if (state.view === 'skin') { if (window.SkinModule) window.SkinModule.render(); }
     else if (state.view === 'buy') { if (window.HTPro) window.HTPro.renderBuy(); }
     else if (state.view === 'ai') { if (window.AIModule) window.AIModule.render(); }
+    else if (state.view === 'history') { if (window.HistoryModule) window.HistoryModule.render(state.sub || []); }
     else { renderProfile(); if (window.HTPro) window.HTPro.renderProfileCard(); }
     if (state.view === 'today') renderFacePromos();
+    if (state.view === 'today' || state.view === 'workouts') {
+      var lb = document.getElementById(state.view === 'today' ? 'hsLiveToday' : 'hsLiveWk');
+      if (lb) lb.innerHTML = window.HistoryModule ? window.HistoryModule.liveBanner() : '';
+    }
   }
   // v5: subtitles of the «Челюсть 30 дней» / «Уход за кожей» shortcuts on the Today screen
   function renderFacePromos() {
@@ -1390,7 +1396,9 @@
     var data = {};
     ORDER.forEach(function (id) { data[id] = {}; keys(id).forEach(function (k) { data[id][k] = get(id, k); }); });
     var payload = { app: 'health-tracker', version: 2, exportedAt: new Date().toISOString(), settings: settings, data: data, food: food,
-      plan: { form: planStore.form, plan: planStore.plan, at: planStore.at } };
+      plan: { form: planStore.form, plan: planStore.plan, at: planStore.at },
+      history: window.HistoryModule ? window.HistoryModule.exportData() : undefined,
+      modules: { jaw: readJSON('health.jaw.v1', null), skin: readJSON('health.skin.v1', null) } };
     download('health-data-' + todayKey() + '.json', JSON.stringify(payload, null, 2), 'application/json');
     toast(t('data.downloaded'));
   }
@@ -1421,11 +1429,19 @@
       }
       var inFood = sanitizeFood(obj.food);
       var nFood = foodCount(inFood);
-      var n = ORDER.reduce(function (s, id) { return s + Object.keys(incoming[id]).length; }, 0) + nFood;
+      var nHist = obj.history && Array.isArray(obj.history.workouts) ? obj.history.workouts.length : 0;
+      var n = ORDER.reduce(function (s, id) { return s + Object.keys(incoming[id]).length; }, 0) + nFood + nHist;
       if (!n) { toast(t('data.noValid')); return; }
       if (!confirm(t('data.confirmImport', { n: plural(n, 'w.entry') }))) return;
       ORDER.forEach(function (id) { Object.keys(incoming[id]).forEach(function (k) { store.data[id][k] = incoming[id][k]; }); });
       if (nFood) { Object.keys(inFood).forEach(function (k) { food[k] = inFood[k]; }); saveFood(); }
+      if (nHist && window.HistoryModule) window.HistoryModule.importData(obj.history);
+      // jaw / skincare progress: only restored on a device that has none yet (never overwrites local progress)
+      if (obj.modules && typeof obj.modules === 'object') {
+        var jw = obj.modules.jaw, sk = obj.modules.skin, lj = readJSON('health.jaw.v1', null), ls = readJSON('health.skin.v1', null);
+        if (jw && jw.completed && typeof jw.completed === 'object' && !(lj && lj.completed && Object.keys(lj.completed).length)) writeJSON('health.jaw.v1', jw);
+        if (sk && sk.checks && typeof sk.checks === 'object' && !(ls && ls.checks && Object.keys(ls.checks).length)) writeJSON('health.skin.v1', sk);
+      }
       if (obj.plan && typeof obj.plan === 'object') {
         var ps = sanitizePlanStore(obj.plan);
         if (ps.plan) { planStore = ps; wk.form = ps.form; savePlanStore(); }
@@ -1476,19 +1492,21 @@
       if (rnd() < 0.75) put('mood', k, Math.max(1, Math.min(5, Math.round(3.7 + gauss() * 0.8))));
     }
     if (!settings.goals.weight) settings.goals.weight = Math.round(weight - 4);
+    if (window.HistoryModule) added += window.HistoryModule.demo();
     persist();
     state.year = y;
     render({ scroll: true });
     toast(added ? t('data.demoAdded', { n: fmtNum(added, 0) }) : t('data.demoNone'));
   }
   function clearAll() {
-    var n = totalEntries() + foodCount(food);
+    var n = totalEntries() + foodCount(food) + (window.HistoryModule ? window.HistoryModule.count() : 0);
     if (!n) { toast(t('data.nothing')); return; }
     if (!confirm(t('data.confirmClear', { n: fmtNum(n, 0) }))) return;
     store.data = emptyData();
     food = {}; saveFood();
     planStore = sanitizePlanStore(null); wk.form = planStore.form;
-    try { localStorage.removeItem(PLAN_KEY); localStorage.removeItem(LEGACY_CHAT_KEY); } catch (e) { /* ignore */ }
+    try { localStorage.removeItem(PLAN_KEY); localStorage.removeItem(LEGACY_CHAT_KEY); localStorage.removeItem('health.history.v1'); } catch (e) { /* ignore */ }
+    if (window.HistoryModule) window.HistoryModule.reload();
     fs.day = null; fs.sel = null;
     persist();
     render();
@@ -2291,7 +2309,7 @@
       h('p', { class: 'plan-scheme', text: t('wk.scheme.' + f.goal) }),
       h('div', { class: 'plan-meta', text: meta })
     ]));
-    p.days.forEach(function (d) {
+    p.days.forEach(function (d, di) {
       var tpl = TPL[d.tpl] || { f: 'fb', s: '' };
       var ul = h('ul', { class: 'ex-list' });
       d.items.forEach(function (it) {
@@ -2310,7 +2328,8 @@
           h('h3', { text: t('wk.f.' + tpl.f) + (tpl.s ? ' ' + tpl.s : '') }),
           h('span', { class: 'day-min', text: t('wk.min', { m: dayMinutes(d) }) })
         ]),
-        ul
+        ul,
+        d.tpl !== 'rec' ? h('button', { type: 'button', class: 'btn small primary day-start', 'data-hs-start': String(di), text: settings.lang === 'en' ? '▶ Start workout' : '▶ Начать тренировку' }) : null
       ]));
     });
     var nl = h('ul', { class: 'plan-notes' });
@@ -2438,6 +2457,8 @@
   el.wkDaysPlus.addEventListener('click', function () { wk.form.days = Math.min(7, wk.form.days + 1); el.wkDays.textContent = wk.form.days; savePlanStore(); });
   el.wkEnergy.addEventListener('click', function (e) { if (e.target.closest('[data-en-auto]')) setAutoGoal(); });
   document.getElementById('view-workouts').addEventListener('click', function (e) {
+    var hs = e.target.closest('[data-hs-start]');
+    if (hs) { if (window.HistoryModule) window.HistoryModule.startPlanDay(Number(hs.dataset.hsStart)); return; }
     var lb = e.target.closest('[data-lib-eq]');
     if (lb) { libEq = lb.dataset.libEq; renderExLibrary(); return; }
     var xe = e.target.closest('[data-ex]');
@@ -2471,7 +2492,40 @@
     plan: function () { return planStore; },
     todayKey: todayKey, toKey: toKey, parseKey: parseKey, addDays: addDays, today: today,
     kcalGoal: kcalGoal, macroTargets: macroTargets, foodTotals: foodTotals, entryName: entryName,
-    isPro: isPro
+    isPro: isPro,
+    // v8: used by the AI assistant (nutrition lookup, photo recognition, norms)
+    searchFoods: searchFoods, foodById: function (id) { return FOOD_BY_ID[id] || null; }, portionOf: portionOf,
+    energy: function () { return profileEnergy(); },
+    weight: function () { return currentWeight() || null; },
+    profile: function () { return { age: settings.age || wk.form.age || null, sex: settings.sex || null, height: settings.height || wk.form.height || null, activity: settings.activity, goal: wk.form.goal || 'general' }; },
+    // add to TODAY's diary: { fid, g } for a database food, or { name, g, kcal, p, f, c } for a custom one
+    addFood: function (x) {
+      var f = x.fid && FOOD_BY_ID[x.fid], g = Math.round(Number(x.g) || 0), entry;
+      if (f) { if (!(g >= 1 && g <= 3000)) g = f.por || 100; var v = portionOf(f, g); entry = { fid: f.id, name: f.ru, g: g, kcal: v.kcal, p: v.p, f: v.f, c: v.c }; }
+      else {
+        if (!x.name) return null;
+        entry = { name: String(x.name).slice(0, 120), kcal: Math.max(0, Math.round(Number(x.kcal) || 0)), p: r1(Math.max(0, Number(x.p) || 0)), f: r1(Math.max(0, Number(x.f) || 0)), c: r1(Math.max(0, Number(x.c) || 0)) };
+        if (g >= 1 && g <= 3000) entry.g = g;
+      }
+      var k = todayKey();
+      entry.id = uid(); entry.at = Date.now();
+      (food[k] = food[k] || []).push(entry);
+      saveFood();
+      if (state.view === 'food' || state.view === 'today') render();
+      return entry;
+    },
+    toast: function (m) { toast(m); },
+    // v8: used by history.js
+    exercises: function () { return EXERCISES; }, exById: function (id) { return EX_BY_ID[id] || null; }, fmtReps: fmtReps,
+    dayTitle: function (d) { var tp = TPL[d.tpl] || { f: 'fb', s: '' }; return t('wk.f.' + tp.f) + (tp.s ? ' ' + tp.s : ''); },
+    // a finished/removed history workout adjusts the daily «Тренировка» minutes
+    addWorkoutMinutes: function (k, delta) {
+      if (!isValidKey(k) || !delta) return;
+      var m = METRICS.workout, v = (get('workout', k) || 0) + delta;
+      if (v <= 0) delete store.data.workout[k];
+      else store.data.workout[k] = Math.min(m.max, Math.round(v));
+      persist();
+    }
   };
 
   // ======================================================================
