@@ -1,0 +1,180 @@
+/* Здоровье / Health — built-in coach content: quick answers + short tips (static text, RU + EN, no network). */
+(function (root) {
+  'use strict';
+  root.HEALTH_COACH = {
+    answers: [
+      {
+        id: 'protein', icon: '🥩',
+        q: { ru: 'Сколько белка?', en: 'How much protein?' },
+        a: {
+          ru: ['1,6–2,2 г на кг веса в день, если вы тренируетесь. На похудении — ближе к 2,0–2,2 г/кг, чтобы сохранить мышцы.',
+               'Делите на 3–5 приёмов по 25–40 г.',
+               'Источники: курица, индейка, рыба, яйца, творог, греческий йогурт, бобовые, тофу.',
+               'При большом лишнем весе считайте на целевой вес, а не на текущий.'],
+          en: ['1.6–2.2 g per kg of body weight per day if you train. When cutting, aim for 2.0–2.2 g/kg to keep muscle.',
+               'Split it into 3–5 meals of 25–40 g.',
+               'Sources: chicken, turkey, fish, eggs, cottage cheese, Greek yogurt, legumes, tofu.',
+               'With a lot of excess weight, calculate from your goal weight, not your current one.']
+        }
+      },
+      {
+        id: 'belly', icon: '🎯',
+        q: { ru: 'Как убрать живот?', en: 'How to lose belly fat?' },
+        a: {
+          ru: ['Жир локально не сжигается: упражнения на пресс укрепляют мышцы, но не «сжигают» жир на животе.',
+               'Работает: дефицит 15–20% калорий, белок 1,6–2,2 г/кг, силовые 2–4 раза в неделю, 7–10 тыс. шагов, сон 7–9 ч.',
+               'Нормальный темп — минус 0,5–1% веса в неделю. Живот уходит вместе с общим жиром, обычно одним из последних.'],
+          en: ['Spot reduction does not work: ab exercises strengthen muscles but do not burn belly fat specifically.',
+               'What works: a 15–20% calorie deficit, 1.6–2.2 g/kg protein, strength training 2–4×/week, 7–10k steps, 7–9 h of sleep.',
+               'A healthy pace is 0.5–1% of body weight per week. Belly fat goes with overall fat loss, often last.']
+        }
+      },
+      {
+        id: 'warmup', icon: '🔥',
+        q: { ru: 'Разминка', en: 'Warm-up' },
+        a: {
+          ru: ['5–10 минут перед тренировкой:',
+               '1) 3–5 мин лёгкого кардио — ходьба, велотренажёр, прыжки;',
+               '2) суставная гимнастика — шея, плечи, таз, колени, голеностоп;',
+               '3) динамическая растяжка — выпады с поворотом, махи ногами, «кошка-корова»;',
+               '4) 1–2 лёгких разминочных подхода первого упражнения.',
+               'Статическую растяжку оставьте на конец тренировки.'],
+          en: ['5–10 minutes before training:',
+               '1) 3–5 min of light cardio — walking, bike, jumping jacks;',
+               '2) joint circles — neck, shoulders, hips, knees, ankles;',
+               '3) dynamic stretches — lunges with a twist, leg swings, cat-cow;',
+               '4) 1–2 light warm-up sets of your first exercise.',
+               'Save static stretching for the end of the session.']
+        }
+      },
+      {
+        id: 'lose', icon: '⚖️',
+        q: { ru: 'Как похудеть без вреда?', en: 'How to lose weight safely?' },
+        a: {
+          ru: ['Дефицит 15–20% от суточного расхода (TDEE) — расчёт в разделе «Тренировки».',
+               'Безопасный темп: 0,5–1% веса в неделю. Надолго не опускайтесь ниже BMR.',
+               'Высокий белок + силовые = уходит жир, а не мышцы.',
+               'Взвешивайтесь утром натощак и смотрите на среднее за неделю, а не на один день.'],
+          en: ['Eat 15–20% below your daily expenditure (TDEE) — see the calculation in Workouts.',
+               'Safe pace: 0.5–1% of body weight per week. Avoid staying below your BMR for long.',
+               'High protein + strength training = you lose fat, not muscle.',
+               'Weigh yourself in the morning and track the weekly average, not single days.']
+        }
+      },
+      {
+        id: 'muscle', icon: '💪',
+        q: { ru: 'Как набрать мышцы?', en: 'How to build muscle?' },
+        a: {
+          ru: ['Небольшой профицит ~10% (+200–300 ккал), белок 1,6–2,2 г/кг.',
+               '10–20 рабочих подходов на мышцу в неделю, 6–12 повторов, за 1–3 повтора до отказа.',
+               'Постепенно добавляйте вес или повторы (прогрессия нагрузки).',
+               'Сон 7–9 ч. Реальный темп: новичкам ~0,5–1 кг в месяц, опытным — медленнее.'],
+          en: ['A small surplus of ~10% (+200–300 kcal) and 1.6–2.2 g/kg protein.',
+               '10–20 hard sets per muscle per week, 6–12 reps, stopping 1–3 reps short of failure.',
+               'Gradually add weight or reps (progressive overload).',
+               'Sleep 7–9 h. Realistic pace: ~0.5–1 kg/month for beginners, slower later.']
+        }
+      },
+      {
+        id: 'water', icon: '💧',
+        q: { ru: 'Сколько пить воды?', en: 'How much water?' },
+        a: {
+          ru: ['Ориентир — 30–35 мл на кг веса в сутки (≈2–2,5 л при 70 кг), включая чай, супы и т. п.',
+               'Больше в жару и на тренировках: +0,5–1 л на час нагрузки.',
+               'Простой контроль: светло-жёлтый цвет мочи.'],
+          en: ['A guideline is 30–35 ml per kg of body weight per day (≈2–2.5 L at 70 kg), tea and soups included.',
+               'More in hot weather and when training: +0.5–1 L per hour of exercise.',
+               'Simple check: pale yellow urine.']
+        }
+      },
+      {
+        id: 'steps', icon: '👟',
+        q: { ru: 'Сколько шагов в день?', en: 'How many steps a day?' },
+        a: {
+          ru: ['7–10 тыс. шагов в день связаны с заметно меньшим риском болезней; польза растёт примерно до 8–10 тыс. (после 60 лет — до 6–8 тыс.).',
+               'Если сейчас мало — добавляйте по 1000 шагов в неделю.',
+               '10 тыс. шагов — это примерно +300–400 ккал расхода.'],
+          en: ['7–10k steps a day are linked to a clearly lower risk of disease; the benefit grows up to about 8–10k (6–8k after age 60).',
+               'If you are low now, add 1,000 steps per week.',
+               '10k steps burn roughly an extra 300–400 kcal.']
+        }
+      },
+      {
+        id: 'sleep', icon: '🌙',
+        q: { ru: 'Сколько спать?', en: 'How much sleep?' },
+        a: {
+          ru: ['Взрослым — 7–9 часов. Недосып усиливает аппетит и тягу к сладкому и ухудшает восстановление.',
+               'Ложитесь и вставайте в одно время, спальня — тёмная и прохладная (18–20 °C).',
+               'Без кофеина за 8 ч до сна и без экранов за 30–60 минут.'],
+          en: ['Adults need 7–9 hours. Short sleep increases appetite and sugar cravings and hurts recovery.',
+               'Keep a consistent schedule; a dark, cool bedroom (18–20 °C).',
+               'No caffeine within 8 h of bedtime and no screens 30–60 min before.']
+        }
+      },
+      {
+        id: 'prepost', icon: '🍌',
+        q: { ru: 'Что есть до и после тренировки?', en: 'What to eat around training?' },
+        a: {
+          ru: ['За 1–3 ч до: углеводы + немного белка (овсянка с йогуртом, банан и творог, рис с курицей).',
+               'После: 20–40 г белка в течение пары часов + углеводы.',
+               '«Анаболическое окно» не критично — важнее общий белок и калории за день.'],
+          en: ['1–3 h before: carbs + some protein (oats with yogurt, banana and cottage cheese, rice with chicken).',
+               'After: 20–40 g of protein within a couple of hours, plus carbs.',
+               'The "anabolic window" is not critical — total daily protein and calories matter more.']
+        }
+      },
+      {
+        id: 'often', icon: '📅',
+        q: { ru: 'Как часто тренироваться?', en: 'How often to train?' },
+        a: {
+          ru: ['Минимум по ВОЗ: 150–300 минут умеренной активности в неделю + силовые 2 раза и больше.',
+               'Каждую группу мышц — примерно 2 раза в неделю.',
+               'Между тяжёлыми тренировками одной группы — 48 часов отдыха.'],
+          en: ['WHO minimum: 150–300 min of moderate activity per week + strength training 2+ times.',
+               'Train each muscle group about twice a week.',
+               'Give a muscle group 48 hours between hard sessions.']
+        }
+      },
+      {
+        id: 'progress', icon: '📈',
+        q: { ru: 'Как прогрессировать?', en: 'How to progress?' },
+        a: {
+          ru: ['Двойная прогрессия: выберите диапазон, например 8–12 повторов.',
+               'Когда во всех подходах сделали верх диапазона — добавьте 2,5–5% веса и начните снова с низа.',
+               'Без инвентаря: больше повторов, медленнее темп, более сложный вариант упражнения.',
+               'Каждые 6–8 недель — лёгкая неделя (объём −40%).'],
+          en: ['Double progression: pick a rep range, e.g. 8–12.',
+               'Once you hit the top of the range on all sets, add 2.5–5% weight and start again at the bottom.',
+               'No equipment: more reps, slower tempo, or a harder variation.',
+               'Every 6–8 weeks take an easy week (−40% volume).']
+        }
+      },
+      {
+        id: 'sore', icon: '🩹',
+        q: { ru: 'Болят мышцы после тренировки', en: 'Sore after training' },
+        a: {
+          ru: ['Крепатура 24–72 ч после новой нагрузки — это нормально.',
+               'Помогают лёгкое движение (ходьба), сон и белок.',
+               'Острая боль или боль в суставе — остановитесь и не тренируйтесь «через боль». Отёк или боль дольше недели — к врачу.'],
+          en: ['Soreness for 24–72 h after a new workload is normal.',
+               'Light movement (walking), sleep and protein help.',
+               'Sharp pain or joint pain — stop and do not train through it. Swelling or pain lasting over a week — see a doctor.']
+        }
+      }
+    ],
+    tips: [
+      { icon: '🥚', ru: 'Белок в каждом приёме пищи: ладонь мяса или рыбы, 2–3 яйца или 150–200 г творога.', en: 'Protein at every meal: a palm of meat or fish, 2–3 eggs or 150–200 g of cottage cheese.' },
+      { icon: '🥗', ru: 'Половина тарелки — овощи: много объёма и клетчатки при малых калориях.', en: 'Fill half the plate with vegetables: lots of volume and fibre for few calories.' },
+      { icon: '⚖️', ru: 'Взвешивайте крупы и макароны сухими — при варке они тяжелеют в 2–3 раза. В базе есть оба варианта.', en: 'Weigh grains and pasta dry — they gain 2–3× weight when cooked. The database has both versions.' },
+      { icon: '🫒', ru: 'Масло — самое калорийное: 1 ст. л. ≈ 120–135 ккал. Отмеряйте ложкой, а не «на глаз».', en: 'Oil is the most calorie-dense food: 1 tbsp ≈ 120–135 kcal. Measure it with a spoon.' },
+      { icon: '🥤', ru: 'Жидкие калории (сок, газировка, алкоголь, сладкий кофе) почти не насыщают — записывайте их.', en: 'Liquid calories (juice, soda, alcohol, sweet coffee) barely fill you up — log them.' },
+      { icon: '👟', ru: 'Шаги — самый простой способ тратить +200–400 ккал в день без отдельной тренировки.', en: 'Steps are the easiest way to burn an extra 200–400 kcal a day without a separate workout.' },
+      { icon: '📉', ru: 'Вес колеблется на 0,5–2 кг из-за воды и соли. Смотрите на среднее за неделю.', en: 'Body weight swings 0.5–2 kg from water and salt. Watch the weekly average.' },
+      { icon: '🏋️', ru: 'Техника важнее веса: последние 1–3 повтора тяжёлые, но без потери техники.', en: 'Form beats load: the last 1–3 reps should be hard but with clean technique.' },
+      { icon: '🌾', ru: 'Клетчатка 25–35 г в день: овощи, фрукты, бобовые, цельнозерновые.', en: 'Fibre 25–35 g a day: vegetables, fruit, legumes, whole grains.' },
+      { icon: '🍫', ru: 'Правило 80/20: 80% простой еды, 20% — любимой. Полные запреты обычно заканчиваются срывом.', en: '80/20 rule: 80% simple whole foods, 20% foods you love. Strict bans usually backfire.' },
+      { icon: '💤', ru: 'Сон 7–9 часов — это восстановление мышц и контроль аппетита.', en: 'Sleeping 7–9 hours means better muscle recovery and appetite control.' },
+      { icon: '🚰', ru: 'Стакан воды перед едой помогает есть медленнее и не переедать.', en: 'A glass of water before a meal helps you eat slower and avoid overeating.' }
+    ]
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

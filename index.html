@@ -1,12 +1,11 @@
 <!doctype html>
-<html lang="ru" class="checking">
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f0c29">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="Здоровье — личный трекер сна, питания и ухода за лицом. Доступ по ключу.">
-  <meta name="robots" content="noindex">
+  <meta name="description" content="Трекер здоровья: сон, вода, шаги, тренировки, вес и настроение. Дневник КБЖУ с базой продуктов, тренировки с картинками, уход за лицом — работает офлайн.">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,43 +15,407 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="lock.css?v=6">
-  <script src="lock.js?v=6" defer></script>
+  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="face.css?v=7">
+  <link rel="stylesheet" href="theme.css?v=7">
+  <link rel="stylesheet" href="pro.css?v=7">
 </head>
 <body>
-  <!-- Public lock screen. The app itself is AES-256-GCM encrypted in app.enc.json and is only
-       decrypted in the browser with a valid access key. -->
-  <div class="lock" id="lock">
-    <div class="lock-sky" aria-hidden="true">
-      <i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i>
-      <i class="st s1"></i><i class="st s2"></i><i class="st s3"></i><i class="st s4"></i><i class="st s5"></i><i class="st s6"></i><i class="st s7"></i><i class="st s8"></i>
-    </div>
+  <main class="app">
 
-    <main class="lock-card" id="lockCard">
-      <div class="lock-icon-wrap"><img class="lock-icon" src="icons/icon.svg" width="96" height="96" alt=""></div>
-      <h1 class="lock-title">Здоровье</h1>
-      <p class="lock-sub">Сон · питание · лицо — личный трекер</p>
-
-      <form class="lock-form" id="lockForm" autocomplete="off" novalidate>
-        <label class="lock-sr" for="lockInput">Введите ключ доступа</label>
-        <div class="lock-field" id="lockField">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
-          <input id="lockInput" type="text" placeholder="Введите ключ доступа" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="40" enterkeyhint="go">
+    <!-- ============ TODAY ============ -->
+    <section class="view" id="view-today" data-view="today">
+      <header class="top">
+        <div>
+          <h1 class="title" data-i18n="today.title">Сегодня</h1>
+          <div class="subtitle" id="todayDate"></div>
         </div>
-        <button class="lock-btn" id="lockBtn" type="submit"><span class="lock-btn-txt">Войти</span><span class="lock-spin" aria-hidden="true"></span></button>
-        <p class="lock-msg" id="lockMsg" role="alert" aria-live="assertive"></p>
+        <div class="score" id="todayScore" aria-live="polite"></div>
+      </header>
+
+      <a class="pro-banner" id="proBanner" href="#buy" hidden></a>
+
+      <div class="cards" id="todayCards"></div>
+
+      <a class="promo-card ai-promo" href="#ai">
+        <span class="promo-ico" aria-hidden="true">🤖</span>
+        <span class="promo-txt"><b>ИИ-ассистент <span class="pro-tag">Pro</span></b><small id="aiPromoSub">Спроси про свой сон, еду и тренировки</small></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
+
+      <a class="promo-card" href="#workouts">
+        <span class="promo-ico" aria-hidden="true">🏋️</span>
+        <span class="promo-txt"><b data-i18n="wk.promoTitle">Программа тренировок</b><small data-i18n="wk.promoSub">План по возрасту, весу и росту</small></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
+
+      <a class="promo-card food-promo" href="#food">
+        <span class="promo-ico" aria-hidden="true">🍽</span>
+        <span class="promo-txt"><b data-i18n="food.promo">Питание</b><small id="foodPromoSub"></small></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
+
+      <div class="face-promos">
+        <a class="promo-card jaw-promo" href="#jaw">
+          <span class="promo-ico" aria-hidden="true">💪</span>
+          <span class="promo-txt"><b>Челюсть 30 дней</b><small id="jawPromoSub">Осанка, шея, меньше отёков</small></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+        </a>
+        <a class="promo-card skin-promo" href="#skin">
+          <span class="promo-ico" aria-hidden="true">🧴</span>
+          <span class="promo-txt"><b>Уход за кожей</b><small id="skinPromoSub">Тест на тип кожи · утро и вечер</small></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+      <section class="card">
+        <div class="card-head"><h2 data-i18n="today.week">Неделя</h2></div>
+        <div class="week" id="weekGrid"></div>
+      </section>
+
+      <div class="empty-hint" id="todayEmpty" hidden>
+        <p data-i18n="today.emptyText">Начните с записи сна или воды — или посмотрите, как всё выглядит на демо-данных.</p>
+        <button class="btn ghost" data-action="demo" data-i18n="data.demo">Загрузить демо-данные</button>
+      </div>
+    </section>
+
+    <!-- ============ TRENDS ============ -->
+    <section class="view" id="view-trends" data-view="trends" hidden>
+      <div class="metric-tabs" id="metricTabs" role="tablist"></div>
+
+      <header class="top">
+        <div class="year-wrap">
+          <button class="icon-btn" id="prevYear" data-i18n-aria="a11y.prevYear" aria-label="Предыдущий год">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <h1 class="year" id="yearLabel">2026</h1>
+          <button class="icon-btn" id="nextYear" data-i18n-aria="a11y.nextYear" aria-label="Следующий год">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+        <div class="nights" id="countLabel" aria-live="polite"></div>
+      </header>
+
+      <section class="heatmap-card">
+        <div class="heatmap-scroll" id="heatmapScroll">
+          <div class="heatmap">
+            <div class="corner" aria-hidden="true"></div>
+            <div class="months" id="months" aria-hidden="true"></div>
+            <div class="days" id="dayLabels" aria-hidden="true"></div>
+            <div class="grid" id="grid" role="group"></div>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="legend-title" id="legendTitle"></div>
+          <ul class="legend-items" id="legendItems"></ul>
+        </div>
+        <div class="empty-state" id="emptyState" hidden>
+          <div class="empty-emoji" id="emptyEmoji" aria-hidden="true">🌙</div>
+          <p class="empty-title" id="emptyTitle"></p>
+          <p class="empty-text" data-i18n="trends.emptyText">Нажмите на любой кружок, чтобы добавить запись, или загрузите демо-данные.</p>
+          <button class="btn ghost" data-action="demo" data-i18n="data.demo">Загрузить демо-данные</button>
+        </div>
+      </section>
+
+      <section class="card" id="goalCard">
+        <div class="card-head">
+          <h2 id="goalTitle"></h2>
+          <div class="stepper" role="group">
+            <button class="step-btn" id="goalMinus" aria-label="−">−</button>
+            <output class="step-val" id="goalValue"></output>
+            <button class="step-btn" id="goalPlus" aria-label="+">+</button>
+          </div>
+        </div>
+        <div id="goalProgress"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2 id="chartTitle"></h2></div>
+        <div class="chart" id="chart"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2 data-i18n="stats.title">Статистика</h2>
+          <div class="seg" role="tablist">
+            <button role="tab" class="seg-btn active" data-scope="year" id="scopeYear">2026</button>
+            <button role="tab" class="seg-btn" data-scope="all" id="scopeAll" data-i18n="stats.allTime">Всё время</button>
+          </div>
+        </div>
+        <div class="stats" id="stats"></div>
+      </section>
+    </section>
+
+    <!-- ============ PROFILE ============ -->
+    <section class="view" id="view-profile" data-view="profile" hidden>
+      <header class="top"><h1 class="title" data-i18n="profile.title">Профиль</h1></header>
+
+      <section class="card pro-card" id="proCard"></section>
+
+      <a class="promo-card ai-promo" href="#ai">
+        <span class="promo-ico" aria-hidden="true">🤖</span>
+        <span class="promo-txt"><b>ИИ-ассистент <span class="pro-tag">Pro</span></b><small>Ответы по твоим данным · настройки</small></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
+
+      <section class="card">
+        <div class="row">
+          <span class="row-lbl" data-i18n="profile.language">Язык</span>
+          <div class="seg" role="tablist">
+            <button class="seg-btn" data-lang="ru">Русский</button>
+            <button class="seg-btn" data-lang="en">English</button>
+          </div>
+        </div>
+        <div class="row">
+          <label class="row-lbl" for="heightInput" data-i18n="profile.height">Рост, см</label>
+          <input class="num-input" id="heightInput" type="text" inputmode="numeric" placeholder="170" maxlength="3">
+        </div>
+        <div class="row">
+          <label class="row-lbl" for="ageInput" data-i18n="profile.age">Возраст, лет</label>
+          <input class="num-input" id="ageInput" type="text" inputmode="numeric" placeholder="30" maxlength="3">
+        </div>
+        <div class="row">
+          <span class="row-lbl" data-i18n="profile.sex">Пол</span>
+          <div class="seg" role="group" id="profileSex"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2 data-i18n="profile.goals">Цели</h2></div>
+        <div id="goalsList"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2 data-i18n="data.title">Мои данные</h2></div>
+        <p class="muted small" data-i18n="data.hint">Все данные хранятся только на этом устройстве. Время от времени сохраняйте резервную копию.</p>
+        <div class="btn-grid">
+          <button class="btn has-pro-tag" data-action="download"><span data-i18n="data.download">Скачать мои данные</span> <span class="pro-tag">Pro</span></button>
+          <button class="btn" data-action="import" data-i18n="data.import">Импорт JSON</button>
+          <button class="btn has-pro-tag" data-action="csv"><span data-i18n="data.csv">Экспорт CSV</span> <span class="pro-tag">Pro</span></button>
+          <button class="btn" data-action="demo" data-i18n="data.demo">Загрузить демо-данные</button>
+          <button class="btn danger wide" data-action="clear" data-i18n="data.clear">Удалить все данные</button>
+        </div>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+        <button class="btn install wide" id="installBtn" hidden data-i18n="data.install">Установить приложение</button>
+        <p class="muted small ios-hint" id="iosHint" hidden data-i18n-html="data.iosHint">Чтобы установить на iPhone: <b>Поделиться</b> → <b>На экран «Домой»</b>.</p>
+      </section>
+
+
+      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">v7</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
+    </section>
+
+    <!-- ============ FOOD (diary + coach tips, fully offline) ============ -->
+    <section class="view" id="view-food" data-view="food" hidden>
+      <header class="top">
+        <div>
+          <h1 class="title" data-i18n="food.title">Питание</h1>
+          <div class="subtitle" data-i18n="food.subtitle">Дневник КБЖУ · советы</div>
+        </div>
+        <a class="pill-link" href="#workouts"><span aria-hidden="true">🏋️</span> <span data-i18n="food.toWorkouts">Тренировки</span></a>
+      </header>
+
+      <section class="card food-summary" id="foodSummary" aria-live="polite"></section>
+
+      <section class="card" id="foodAddCard">
+        <div class="card-head">
+          <h2 data-i18n="food.add">Добавить еду</h2>
+          <div class="seg" role="group">
+            <button type="button" class="seg-btn active" data-fmode="db" data-i18n="food.modeDb">Из базы</button>
+            <button type="button" class="seg-btn" data-fmode="custom" data-i18n="food.modeCustom">Своё</button>
+          </div>
+        </div>
+        <div id="foodDbPane">
+          <label class="search-wrap">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+            <input id="foodSearch" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" maxlength="60"
+                   data-i18n-ph="food.searchPh" placeholder="Найти: гречка, курица, банан…" data-i18n-aria="food.searchPh" aria-label="Найти продукт">
+          </label>
+          <div class="food-results" id="foodResults"></div>
+          <div class="food-pick" id="foodPick" hidden></div>
+        </div>
+        <form class="food-custom" id="foodCustom" autocomplete="off" novalidate hidden>
+          <label class="fc-field fc-name"><span data-i18n="food.cName">Название</span>
+            <input id="cName" type="text" maxlength="120" data-i18n-ph="food.cNamePh" placeholder="Например: салат из столовой"></label>
+          <div class="fc-grid">
+            <label class="fc-field"><span data-i18n="food.cKcal">Ккал</span><input class="num-input" id="cKcal" type="text" inputmode="decimal" maxlength="6" placeholder="0"></label>
+            <label class="fc-field"><span data-i18n="food.cP">Белки, г</span><input class="num-input" id="cP" type="text" inputmode="decimal" maxlength="6" placeholder="0"></label>
+            <label class="fc-field"><span data-i18n="food.cF">Жиры, г</span><input class="num-input" id="cF" type="text" inputmode="decimal" maxlength="6" placeholder="0"></label>
+            <label class="fc-field"><span data-i18n="food.cC">Углеводы, г</span><input class="num-input" id="cC" type="text" inputmode="decimal" maxlength="6" placeholder="0"></label>
+          </div>
+          <p class="muted small" data-i18n="food.cHint">Значения на всю порцию. Если не указать ккал, они посчитаются из БЖУ.</p>
+          <button type="submit" class="btn primary wide" data-i18n="food.addBtn">Добавить в дневник</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2 id="foodDiaryTitle" data-i18n="food.diary">Дневник</h2></div>
+        <div id="foodDiary"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2 data-i18n="coach.title">Быстрые ответы</h2></div>
+        <div class="qa-chips" id="qaChips"></div>
+        <div class="qa-answer" id="qaAnswer" hidden></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2 data-i18n="coach.tips">Советы без воды</h2></div>
+        <div class="tips" id="tipsList"></div>
+      </section>
+    </section>
+
+    <!-- ============ WORKOUTS ============ -->
+    <section class="view" id="view-workouts" data-view="workouts" hidden>
+      <header class="top top-back">
+        <a class="icon-btn" href="#food" data-i18n-aria="wk.back" aria-label="Назад">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </a>
+        <div class="grow">
+          <h1 class="title" data-i18n="wk.title">Тренировки</h1>
+          <div class="subtitle" data-i18n="wk.subtitle">Программа под ваш возраст, вес и рост</div>
+        </div>
+      </header>
+
+      <form class="card wk-form" id="wkForm" novalidate>
+        <div class="wk-nums">
+          <label class="wk-num"><span data-i18n="wk.age">Возраст</span><input class="num-input" id="wkAge" type="text" inputmode="numeric" maxlength="3" placeholder="30"></label>
+          <label class="wk-num"><span data-i18n="wk.weight">Вес, кг</span><input class="num-input" id="wkWeight" type="text" inputmode="decimal" maxlength="5" placeholder="70"></label>
+          <label class="wk-num"><span data-i18n="wk.height">Рост, см</span><input class="num-input" id="wkHeight" type="text" inputmode="numeric" maxlength="3" placeholder="170"></label>
+        </div>
+        <div class="wk-field"><span class="wk-lbl" data-i18n="wk.sex">Пол</span><div class="seg seg-full" id="wkSex"></div></div>
+        <div class="wk-field"><span class="wk-lbl" data-i18n="wk.goal">Цель</span><div class="seg seg-full" id="wkGoal"></div></div>
+        <div class="wk-field"><span class="wk-lbl" data-i18n="wk.level">Уровень</span><div class="seg seg-full" id="wkLevel"></div></div>
+        <div class="wk-field"><span class="wk-lbl" data-i18n="wk.equipment">Инвентарь</span><div class="seg seg-full" id="wkEquip"></div></div>
+        <div class="wk-field row-inline">
+          <span class="wk-lbl" data-i18n="wk.days">Дней в неделю</span>
+          <div class="stepper">
+            <button type="button" class="step-btn" id="wkDaysMinus" aria-label="−">−</button>
+            <output class="step-val" id="wkDays">3</output>
+            <button type="button" class="step-btn" id="wkDaysPlus" aria-label="+">+</button>
+          </div>
+        </div>
+        <label class="wk-field"><span class="wk-lbl" data-i18n="wk.activity">Активность вне тренировок</span>
+          <select class="select" id="wkActivity"></select></label>
+        <button type="submit" class="btn primary big" id="wkSubmit" data-i18n="wk.generate">Составить программу</button>
       </form>
 
-      <p class="lock-foot"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/></svg>Приложение зашифровано · v6</p>
-    </main>
+      <section class="card" id="wkEnergy" aria-live="polite"></section>
 
-    <div class="lock-loading" id="lockLoading" aria-live="polite">
-      <div class="lock-icon-wrap small"><img class="lock-icon" src="icons/icon.svg" width="72" height="72" alt=""></div>
-      <div class="lock-ring" aria-hidden="true"></div>
-      <p id="lockLoadingTxt">Открываем…</p>
+      <div id="wkResult"></div>
+
+      <section class="card" id="exLibrary"></section>
+    </section>
+    <!-- ============ v5: FACE — «Челюсть 30 дней» (jaw.js) + «Уход за кожей» (skin.js) ============ -->
+    <section class="view" id="view-jaw" data-view="jaw" hidden><div id="jawRoot"></div></section>
+    <section class="view" id="view-skin" data-view="skin" hidden><div id="skinRoot"></div></section>
+    <!-- ============ v7: «Купить Про» (pro.js) + ИИ-ассистент (ai.js) ============ -->
+    <section class="view" id="view-buy" data-view="buy" hidden><div id="buyRoot"></div></section>
+    <section class="view" id="view-ai" data-view="ai" hidden><div id="aiRoot"></div></section>
+  </main>
+
+  <!-- Bottom navigation -->
+  <nav class="tabbar" aria-label="Navigation">
+    <a class="tab" href="#today" data-tab="today">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>
+      <span data-i18n="nav.today">Сегодня</span>
+    </a>
+    <a class="tab" href="#trends" data-tab="trends">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18" cy="12" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+      <span data-i18n="nav.trends">Тренды</span>
+    </a>
+    <button class="tab add" id="addBtn" type="button">
+      <span class="add-circle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+      <span data-i18n="nav.add">Добавить</span>
+    </button>
+    <a class="tab" href="#food" data-tab="food">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2.5 1.5-3.5 4-3.5 8h3.5"/></svg>
+      <span data-i18n="nav.food">Питание</span>
+    </a>
+    <a class="tab" href="#jaw" data-tab="face">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0v3c0 3.5-2.6 7-6 7s-6-3.5-6-7z"/><path d="M9.5 15.5q2.5 1.6 5 0"/><circle cx="9.5" cy="10.5" r=".6"/><circle cx="14.5" cy="10.5" r=".6"/></svg>
+      <span data-i18n="nav.face">Лицо</span>
+    </a>
+    <a class="tab" href="#profile" data-tab="profile">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      <span data-i18n="nav.profile">Профиль</span>
+    </a>
+  </nav>
+
+  <!-- Sheets -->
+  <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+
+  <div class="sheet" id="addSheet" role="dialog" aria-modal="true" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <h3 class="sheet-title" data-i18n="add.title">Что записать?</h3>
+      <button class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="add-grid" id="addGrid"></div>
+  </div>
+
+  <div class="sheet" id="logSheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-kicker" id="sheetKicker"></div>
+        <h3 class="sheet-title" id="sheetTitle"></h3>
+      </div>
+      <button class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="sheet-current" id="sheetCurrent"></div>
+    <label class="field">
+      <span class="field-lbl" id="dateLbl"></span>
+      <input type="date" id="dateInput" class="date-input">
+    </label>
+
+    <div id="numericInput">
+      <div class="hours-display">
+        <button class="round-btn" id="valMinus" aria-label="−">−</button>
+        <div class="hours-val"><input id="valInput" type="text" inputmode="decimal" autocomplete="off"><small id="valUnit"></small></div>
+        <button class="round-btn" id="valPlus" aria-label="+">+</button>
+      </div>
+      <input type="range" id="valRange">
+      <div class="range-scale" id="rangeScale" aria-hidden="true"></div>
+      <div class="chips" id="chips"></div>
     </div>
 
-    <noscript><p class="lock-noscript">Для работы приложения включите JavaScript.</p></noscript>
+    <div class="mood-pick" id="moodInput" hidden></div>
+
+    <div class="sheet-actions">
+      <button class="btn danger" id="clearEntryBtn" hidden data-i18n="sheet.clear">Удалить</button>
+      <button class="btn primary grow" id="saveBtn" data-i18n="sheet.save">Сохранить</button>
+    </div>
+    <button class="link-btn" id="historyBtn" data-i18n="sheet.history">Открыть историю →</button>
   </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="license-data.js?v=7" defer></script>
+  <script src="pro.js?v=7" defer></script>
+  <script src="foods.js?v=7" defer></script>
+  <script src="exercises.js?v=7" defer></script>
+  <script src="tips.js?v=7" defer></script>
+  <script src="jaw-data.js?v=7" defer></script>
+  <script src="jaw.js?v=7" defer></script>
+  <script src="skin.js?v=7" defer></script>
+  <script src="ai.js?v=7" defer></script>
+  <script src="app.js?v=7" defer></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      var hadController = !!navigator.serviceWorker.controller;
+      var reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        // A new version took over: reload once so the page uses fresh files.
+        if (hadController && !reloaded) { reloaded = true; window.location.reload(); }
+      });
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('service-worker.js').then(function (reg) {
+          if (reg && reg.update) reg.update();
+        }).catch(function (err) {
+          console.warn('Service worker registration failed:', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
