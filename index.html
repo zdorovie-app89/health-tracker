@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta http-equiv="Cache-Control" content="no-cache">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f0c29">
+  <meta name="theme-color" content="#07070d">
   <meta name="color-scheme" content="dark">
   <meta name="description" content="Трекер здоровья: сон, вода, шаги, тренировки, вес и настроение. Дневник КБЖУ с базой продуктов, тренировки с картинками, уход за лицом — работает офлайн.">
   <meta name="mobile-web-app-capable" content="yes">
@@ -16,11 +16,12 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="styles.css?v=9.5">
-  <link rel="stylesheet" href="face.css?v=9.5">
-  <link rel="stylesheet" href="theme.css?v=9.5">
-  <link rel="stylesheet" href="pro.css?v=9.5">
-  <link rel="stylesheet" href="v9.css?v=9.5">
+  <link rel="stylesheet" href="styles.css?v=9.6">
+  <link rel="stylesheet" href="face.css?v=9.6">
+  <link rel="stylesheet" href="theme.css?v=9.6">
+  <link rel="stylesheet" href="pro.css?v=9.6">
+  <link rel="stylesheet" href="v9.css?v=9.6">
+  <link rel="stylesheet" href="noir.css?v=9.6">
 </head>
 <body>
   <main class="app">
@@ -235,7 +236,7 @@
       </section>
 
 
-      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 9.5</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
+      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 9.6</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
     </section>
 
     <!-- ============ FOOD (diary + coach tips, fully offline) ============ -->
@@ -439,30 +440,31 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="store-guard.js?v=9.5" defer></script>
-  <script src="license-data.js?v=9.5" defer></script>
-  <script src="pro.js?v=9.5" defer></script>
-  <script src="foods.js?v=9.5" defer></script>
-  <script src="exercises.js?v=9.5" defer></script>
-  <script src="tips.js?v=9.5" defer></script>
-  <script src="jaw-data.js?v=9.5" defer></script>
-  <script src="jaw.js?v=9.5" defer></script>
-  <script src="skin.js?v=9.5" defer></script>
-  <script src="history.js?v=9.5" defer></script>
-  <script src="v9.js?v=9.5" defer></script>
-  <script src="sleeptimes.js?v=9.5" defer></script>
-  <script src="insights.js?v=9.5" defer></script>
-  <script src="foodplus.js?v=9.5" defer></script>
-  <script src="body.js?v=9.5" defer></script>
-  <script src="remind.js?v=9.5" defer></script>
-  <script src="ai-config.js?v=9.5" defer></script>
-  <script src="ai.js?v=9.5" defer></script>
-  <script src="app.js?v=9.5" defer></script>
+  <script src="store-guard.js?v=9.6" defer></script>
+  <script src="license-data.js?v=9.6" defer></script>
+  <script src="pay-config.js?v=9.6" defer></script>
+  <script src="pro.js?v=9.6" defer></script>
+  <script src="foods.js?v=9.6" defer></script>
+  <script src="exercises.js?v=9.6" defer></script>
+  <script src="tips.js?v=9.6" defer></script>
+  <script src="jaw-data.js?v=9.6" defer></script>
+  <script src="jaw.js?v=9.6" defer></script>
+  <script src="skin.js?v=9.6" defer></script>
+  <script src="history.js?v=9.6" defer></script>
+  <script src="v9.js?v=9.6" defer></script>
+  <script src="sleeptimes.js?v=9.6" defer></script>
+  <script src="insights.js?v=9.6" defer></script>
+  <script src="foodplus.js?v=9.6" defer></script>
+  <script src="body.js?v=9.6" defer></script>
+  <script src="remind.js?v=9.6" defer></script>
+  <script src="ai-config.js?v=9.6" defer></script>
+  <script src="ai.js?v=9.6" defer></script>
+  <script src="app.js?v=9.6" defer></script>
   <script>
     /* v8.1 auto-update: look for a new service worker on launch, when the app returns to the foreground and every
      * 30 min. The new worker activates at once (skipWaiting + clients.claim); then the page reloads silently if the
      * user has not touched it since launch/resume, otherwise a small «Доступно обновление — Обновить» banner appears. */
-    window.HT_VERSION = '9.5';
+    window.HT_VERSION = '9.6';
     (function () {
       if (!('serviceWorker' in navigator)) return;
       var sw = navigator.serviceWorker, hadController = !!sw.controller, reloading = false, reg = null;
