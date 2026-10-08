@@ -1157,6 +1157,8 @@
     sexButtons(el.profileSex, true);
     var bn = document.getElementById('v9BackupNote');
     if (bn && window.V9) bn.textContent = window.V9.backupNote();
+    if (window.V9Body) window.V9Body.profileHook();
+    if (window.V9Remind) window.V9Remind.renderSettings();
     el.goalsList.innerHTML = '';
     // v9: every metric can be switched off (it then leaves the ring, the week grid and «Сегодня»)
     ORDER.forEach(function (id) {
@@ -2609,7 +2611,8 @@
       return x;
     },
     afterFoodChange: function (msg) { saveFood(); if (msg) toast(msg); if (state.view === 'food' || state.view === 'today') render(); },
-    fmtNum: fmtNum
+    fmtNum: fmtNum,
+    exportJSON: function (o) { exportJSON(o); }
   };
 
   // ======================================================================

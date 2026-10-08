@@ -242,15 +242,16 @@
       '<div class="jw-legend"><span><i class="l-done"></i>выполнен</span><span><i class="l-cur"></i>текущий</span><span><i class="l-light"></i>лёгкий день</span><span>📸 фото</span></div>' +
       '<div class="progress-row jw-prow"><span>🔥 Серия: ' + st + ' ' + plural(st, 'день', 'дня', 'дней') + '</span><span>' + Math.round(dc / TOTAL * 100) + '%</span></div>' + bar(dc / TOTAL * 100) + '</section>' +
       '<section class="card"><div class="card-head"><h2>📸 Фото-чекпоинты</h2></div>' +
-      '<p class="muted small">Фото в профиль при одинаковом свете, ракурсе и расстоянии, с расслабленным лицом, утром. Камера приложению не нужна — просто отметь.</p>' +
+      '<p class="muted small">Фото в профиль при одинаковом свете, ракурсе и расстоянии, с расслабленным лицом, утром. ' + (window.V9Photos ? 'Фото хранятся только на этом устройстве и никуда не загружаются.' : 'Камера приложению не нужна — просто отметь.') + '</p>' +
       [[1, 'Фото дня 1 — старт'], [7, 'Фото дня 7 — меньше отёков, ровнее осанка?'], [30, 'Фото дня 30 — итог']].map(function (p) {
         return '<label class="jw-check' + (S.photos[p[0]] ? ' on' : '') + '"><input type="checkbox" data-photo-chk="' + p[0] + '"' + (S.photos[p[0]] ? ' checked' : '') + '><span class="jw-ci">📸</span><span class="grow"><b>' + p[1] + '</b></span><span class="jw-tick" aria-hidden="true"></span></label>';
-      }).join('') + '</section>' +
+      }).join('') + (window.V9Photos ? '<div id="v9JawPhotos"></div>' : '') + '</section>' +
       '<section class="card"><div class="card-head"><h2>Привычки · 7 дней</h2><span class="jw-pill">🔥 ' + habitStreak() + '</span></div><div class="jw-h7row">' + last7 + '</div></section>' +
       '<section class="card"><div class="card-head"><h2>Настройки</h2></div>' +
       '<label class="jw-check' + (S.sound ? ' on' : '') + '"><input type="checkbox" id="jwSnd"' + (S.sound ? ' checked' : '') + '><span class="jw-ci">🔔</span><span class="grow"><b>Звуковой сигнал в конце таймера</b></span><span class="jw-tick"></span></label>' +
       '<label class="jw-check' + (S.tick ? ' on' : '') + '"><input type="checkbox" id="jwTick"' + (S.tick ? ' checked' : '') + '><span class="jw-ci">🎵</span><span class="grow"><b>Тихий «тик» на каждый повтор</b></span><span class="jw-tick"></span></label>' +
       '<button type="button" class="btn danger wide" id="jwReset" style="margin-top:10px">Сбросить прогресс «Челюсть 30 дней»</button></section>';
+    if (window.V9Photos) window.V9Photos.mount('v9JawPhotos');
   }
 
   /* ---------------- Workout ---------------- */
@@ -487,6 +488,9 @@
   });
   document.addEventListener('visibilitychange', function () { if (!document.hidden && W && W.running) requestWake(); });
 
+  // v9.3: a real photo for a checkpoint day also ticks the checkbox
+  function markPhoto(day, on) { if (D.PHOTO_DAYS.indexOf(+day) < 0) return; if (on) S.photos[day] = true; else delete S.photos[day]; save(); }
+
   /* small summary for the Today promo card */
   function summary() {
     var cd = curDay();
@@ -519,5 +523,5 @@
     }
     return out;
   }
-  window.JawModule = { render: render, leave: leave, summary: summary, stats: stats, history: history };
+  window.JawModule = { render: render, leave: leave, summary: summary, stats: stats, history: history, markPhoto: markPhoto, photoDays: function () { return D.PHOTO_DAYS.slice(); } };
 })();

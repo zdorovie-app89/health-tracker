@@ -181,7 +181,7 @@
       var u = U(), out = [], f = forecast();
       if (f && !f.few) out.push('Прогноз веса (тренд за 4 недели, ' + f.n + ' замеров): ' + rateText(f) + (f.date ? ', цель ' + u.num(f.goal) + ' кг около ' + u.fmtD(f.date) : f.reached ? ', цель достигнута' : '') + '.');
       var o = observations(u.isPro() ? 30 : 7);
-      if (o.enough) o.items.forEach(function (it) { out.push(it.title + ' (' + o.win + ' дн.): ' + it.text.replace(/<[^>]+>/g, '')); });
+      if (o.enough) o.items.forEach(function (it) { if (it.st !== 'few') out.push(it.title + ' (' + o.win + ' дн.): ' + it.text.replace(/<[^>]+>/g, '')); });
       return out.join('\n');
     }
   };

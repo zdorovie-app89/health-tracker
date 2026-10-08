@@ -15,35 +15,39 @@
  * v9.0: «Сегодня» = one next action, own goals, weekly summary, free JSON backup (v9.js, v9.css).
  * v9.1: sleep as bedtime/wake interval + regularity (sleeptimes.js), weight forecast + observations (insights.js).
  * v9.2: food speed — repeat yesterday, favourites, recent, barcode via Open Food Facts (foodplus.js; the lookups are
- *     cross-origin, so this worker never caches them); next-weight suggestions in the live workout (history.js). */
+ *     cross-origin, so this worker never caches them); next-weight suggestions in the live workout (history.js).
+ * v9.3: measurements + private progress photos in IndexedDB (body.js), local reminders (remind.js) — a tap on a
+ *     reminder notification focuses / opens the app (notificationclick below). */
 'use strict';
 
-var CACHE_VERSION = 'health-tracker-v9.2';
+var CACHE_VERSION = 'health-tracker-v9.3';
 var APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=9.2',
-  './face.css?v=9.2',
-  './theme.css?v=9.2',
-  './pro.css?v=9.2',
-  './v9.css?v=9.2',
-  './license-data.js?v=9.2',
-  './pro.js?v=9.2',
-  './foods.js?v=9.2',
-  './exercises.js?v=9.2',
-  './tips.js?v=9.2',
-  './jaw-data.js?v=9.2',
-  './jaw.js?v=9.2',
-  './skin.js?v=9.2',
-  './history.js?v=9.2',
-  './v9.js?v=9.2',
-  './sleeptimes.js?v=9.2',
-  './insights.js?v=9.2',
-  './foodplus.js?v=9.2',
-  './ai-config.js?v=9.2',
-  './ai.js?v=9.2',
-  './app.js?v=9.2',
-  './vendor/nacl.min.js?v=9.2',
+  './styles.css?v=9.3',
+  './face.css?v=9.3',
+  './theme.css?v=9.3',
+  './pro.css?v=9.3',
+  './v9.css?v=9.3',
+  './license-data.js?v=9.3',
+  './pro.js?v=9.3',
+  './foods.js?v=9.3',
+  './exercises.js?v=9.3',
+  './tips.js?v=9.3',
+  './jaw-data.js?v=9.3',
+  './jaw.js?v=9.3',
+  './skin.js?v=9.3',
+  './history.js?v=9.3',
+  './v9.js?v=9.3',
+  './sleeptimes.js?v=9.3',
+  './insights.js?v=9.3',
+  './foodplus.js?v=9.3',
+  './body.js?v=9.3',
+  './remind.js?v=9.3',
+  './ai-config.js?v=9.3',
+  './ai.js?v=9.3',
+  './app.js?v=9.3',
+  './vendor/nacl.min.js?v=9.3',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -190,4 +194,17 @@ self.addEventListener('fetch', function (event) {
       return caches.match(req).then(function (r) { return r || caches.match(req, { ignoreSearch: true }); });
     })
   );
+});
+
+// v9.3: a tap on a reminder notification brings the app to the front (or opens it)
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  var url = new URL((event.notification.data && event.notification.data.url) || 'index.html' + '#today', self.registration.scope).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+    for (var i = 0; i < list.length; i++) {
+      var c = list[i];
+      if ('focus' in c) { if (c.url !== url && c.navigate) c.navigate(url).catch(function () {}); return c.focus(); }
+    }
+    return self.clients.openWindow ? self.clients.openWindow(url) : null;
+  }));
 });

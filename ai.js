@@ -119,6 +119,11 @@
   var INTENTS = [
     ['help', rx('^(привет|здравствуй|хай|hello|hi)\\b|что (ты )?умеешь|помощ|help|кто ты')],
     ['improve', rx('улучш|исправ|что (мне )?делать|совет|рекоменд|над чем|слаб|подтян|как стать|что не так')],
+    ['weekrep', rx('итог[а-я]* (за |этой |прошлой )?недел|недельн[а-я]* (итог|отчет)|как прошла неделя')],
+    ['insights', rx('связ[ьаи]|зависи|влия[ею]т|корреляц|наблюден|после (короткого|плохого|недо)')],
+    ['forecast', rx('прогноз|когда (я )?(достигну|дойду|похудею|буду весить)|к какому числу')],
+    ['measure', rx('талия|талии|талию|замер|процент[а-я]* жира|% жира|жиров[а-я]* (масс|ткан)|бедр[ао]')],
+    ['regular', rx('регулярн|режим сна|во сколько (я )?(встаю|ложусь|просыпаюсь)|отбой|подъем')],
     ['summary', rx('итог|обзор|сводк|отчет|статистик|как (у меня )?дела|в целом|общ[а-я]* картин')],
     ['jaw', rx('челюст|подбород|скул|мьюинг|осанк|шея|шеи|лиц[оа]\\b')],
     ['skin', rx('кож|умыв|уход|акне|прыщ|spf|крем')],
@@ -156,8 +161,45 @@
       if (a < g - 0.25) out.push('Недосып за неделю ≈ ' + b(num(debt) + ' ч') + '. ' + (a < 7 ? 'Главный совет: ложись на 30–40 минут раньше 5 дней подряд — это даст больше, чем «отсыпание» в выходные.' : 'Почти у цели: добавь 20–30 минут сна, отложив телефон за час до сна.'));
       else out.push('Отлично, сон в норме. ' + (sd > 1 ? 'Попробуй вставать в одно и то же время — ровный режим улучшит самочувствие.' : 'Держи этот режим.'));
       var mood = moodSleepLink(); if (mood) out.push(mood);
+      var rg = sleepTimesLine(); if (rg) out.push(rg);
     } else out.push('На этой неделе записей сна нет, а неделей раньше было в среднем ' + b(num(p) + ' ч') + '. Запиши последнюю ночь через «+».');
     return out.join(' ');
+  }
+  // v9.1: bedtime / wake times + regularity (sleeptimes.js)
+  function sleepTimesLine() {
+    var V = window.V9Sleep; if (!V) return '';
+    var r = V.regularity(14), all = V.all(), ks = Object.keys(all).sort().slice(-7);
+    if (!ks.length) return '';
+    var bed = ks.map(function (k) { var m = +all[k].b.split(':')[0] * 60 + +all[k].b.split(':')[1]; return m < 720 ? m + 1440 : m; }), bm = Math.round(avg(bed)) % 1440;
+    var hhmm = function (m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+    return 'По времени: ложишься в среднем около ' + b(hhmm(bm)) + (r.sd !== null ? ', встаёшь около ' + b(r.avgWake) + '; регулярность подъёма ±' + r.sd + ' мин — ' + V.regWord(r.sd) + '.' : '. Для оценки регулярности нужно 5+ ночей со временем отбоя и подъёма.');
+  }
+  function ansRegular() {
+    var line = sleepTimesLine();
+    return line || 'Записей со временем отбоя и подъёма пока нет. В «Сколько спал?» на «Сегодня» или в «+» → «Сон» укажи, во сколько лёг и встал — посчитаю длительность и регулярность.';
+  }
+  function ansWeekRep() {
+    var V = window.V9; if (!V) return ansSummary();
+    var w = V.weekStats(V.defaultWeek());
+    return V.weekText(w).replace(/^Итоги недели/, 'Итоги недели') + ' Подробно — на экране «Итоги недели» (Сегодня → 📊).';
+  }
+  function ansInsights() {
+    var I = window.V9Insights; if (!I) return 'Наблюдения появятся в следующей версии.';
+    var o = I.observations(!window.HTPro || window.HTPro.isPro() ? 30 : 7);
+    if (!o.enough) return 'Для наблюдений нужно хотя бы 14 дней с записями (сейчас ' + o.days + '). Записывай сон, настроение, еду и тренировки — и я покажу, что с чем связано.';
+    return 'Наблюдения за ' + o.win + ' дн. (совпадение — ещё не причина):<ul>' + o.items.map(function (it) { return '<li><b>' + it.title + ':</b> ' + it.text + '</li>'; }).join('') + '</ul>';
+  }
+  function ansForecast() {
+    var I = window.V9Insights, f = I && I.forecast();
+    if (!f) return noData('вес', 'Для прогноза взвешивайся 2–3 раза в неделю — нужен хотя бы 4 замера за 2 недели.');
+    if (f.few) return 'Для прогноза нужно хотя бы 4 замера веса за 2–4 недели (сейчас ' + f.n + ').';
+    var line = I.forecastLine();
+    return line + '. ' + (f.date ? '' : f.away ? 'Вес сейчас движется от цели, поэтому дату не называю. ' : f.noisy ? 'Замеры сильно скачут — дату не называю. ' : !f.goal ? 'Поставь цель по весу в Профиле — назову примерную дату. ' : '') + 'Это линейный тренд за 4 недели (R² ' + num(f.r2, 2) + '), ориентир, а не обещание.';
+  }
+  function ansMeasure() {
+    var B = window.V9Body; if (!B) return 'Замеры появятся в следующей версии.';
+    var t = B.text();
+    return t ? t + ' Записать новые — Профиль → 📏 Замеры.' : 'Замеров пока нет. Раз в неделю запиши талию и шею (и бёдра) в Профиль → 📏 Замеры — покажу динамику и грубую оценку % жира.';
   }
   function moodSleepLink() {
     var a = A(), sl = a.data().sleep || {}, md = a.data().mood || {}, good = [], bad = [];
@@ -278,6 +320,8 @@
     if (h) { var bmi = lv / Math.pow(h / 100, 2); li.push('ИМТ: ' + b(num(bmi)) + (bmi < 18.5 ? ' — ниже нормы' : bmi < 25 ? ' — норма' : bmi < 30 ? ' — избыточный вес' : ' — ожирение')); }
     if (g) li.push('До цели ' + num(g) + ' кг: ' + b(num(Math.abs(lv - g)) + ' кг'));
     if (li.length) out.push('<ul><li>' + li.join('</li><li>') + '</li></ul>');
+    var fl = window.V9Insights ? window.V9Insights.forecastLine() : '';
+    if (fl && !/^Прогноз —/.test(fl)) { out.push(fl + ' <span class="muted">(линейный тренд за 4 недели)</span>.'); return out.join(' '); }
     if (w30 !== null && g && ks.length > 3) {
       var rate = (lv - w30) / 30 * 7, need = g - lv;
       if (rate !== 0 && Math.sign(rate) === Math.sign(need)) out.push('При текущем темпе (' + num(Math.abs(rate)) + ' кг/нед) до цели ≈ ' + b(Math.ceil(Math.abs(need / rate)) + ' нед') + '.');
@@ -737,7 +781,7 @@
 
   /* ================= router with context, follow-ups and non-repeating fallback ================= */
   function ansHelp() {
-    return 'Я анализирую твои данные на этом устройстве — сон, воду, шаги, тренировки и их историю (подходы и веса), вес, питание (КБЖУ), программу для челюсти и уход за кожей — и знаю калорийность 800+ продуктов. Спрашивай: «как я сплю», «что я делал в среду», «сколько раз я жал на прошлой неделе», «калории в мраморной говядине», «гречка или рис», «сколько белка мне нужно», «что улучшить».';
+    return 'Я анализирую твои данные на этом устройстве — сон (и время отбоя/подъёма), воду, шаги, тренировки и их историю (подходы и веса), вес и его прогноз, замеры, питание (КБЖУ), программу для челюсти и уход за кожей — и знаю калорийность 800+ продуктов. Спрашивай: «как я сплю», «итоги недели», «есть связь сна и настроения?», «когда я дойду до цели по весу», «что я делал в среду», «калории в мраморной говядине», «что улучшить».';
   }
   var FOLLOW = rx('^(ответь( же)?( на (мой |этот )?вопрос)?|ну( и| так| же)?|и|а|так|и что|и\\?|ну и\\?|подробнее|а подробнее|поподробнее|расскажи подробнее|объясни подробнее|еще|ещё|а еще|дальше|продолжай|продолжи|поясни|объясни|не понял[а]?|непонятно|в смысле|что|чего|ок и|почему|а почему|зачем|а точнее|точнее)$');
   function fallback(q) {
@@ -792,6 +836,11 @@
     switch (it) {
       case 'help': return { h: ansHelp(), kind: 'help' };
       case 'improve': return { h: ansImprove(), kind: 'improve' };
+      case 'weekrep': return { h: ansWeekRep(), kind: 'summary' };
+      case 'insights': return { h: ansInsights(), kind: 'summary' };
+      case 'forecast': return { h: ansForecast(), kind: 'weight' };
+      case 'measure': return { h: ansMeasure(), kind: 'weight' };
+      case 'regular': return { h: ansRegular(), kind: 'sleep' };
       case 'summary': return { h: ansSummary(), kind: 'summary' };
       case 'jaw': return { h: ansJaw(), kind: 'jaw' };
       case 'skin': return { h: ansSkin(), kind: 'skin' };
@@ -867,7 +916,7 @@
     if (!n) lines.push('(записей нет)');
     [0, 1].forEach(function (off) {
       var k = keysBack(1, off)[0], list = foodDay(k);
-      if (list.length) lines.push('Еда ' + (off ? 'вчера' : 'сегодня') + ': ' + list.slice(0, 25).map(function (x) { return a.entryName(x) + (x.g ? ' ' + x.g + 'г' : '') + ' ' + Math.round(x.kcal) + 'ккал Б' + Math.round(x.p); }).join('; '));
+      if (list.length) lines.push('Еда ' + (off ? 'вчера' : 'сегодня') + ': ' + list.slice(0, 25).map(function (x) { return a.entryName(x) + (x.g ? ' ' + x.g + 'г' : '') + ' ' + Math.round(x.kcal) + 'ккал Б' + Math.round(x.p) + (x.fib !== undefined ? ' клетч' + x.fib : ''); }).join('; '));
     });
     var wd = d.weight || {}, wks = Object.keys(wd).sort();
     if (wks.length) lines.push('Вес: последний ' + wd[wks[wks.length - 1]] + ' кг (' + wks[wks.length - 1] + ')' + (wks.length > 1 ? ', первый в истории ' + wd[wks[0]] + ' кг (' + wks[0] + ')' : '') + '.');
@@ -879,6 +928,27 @@
     if (j) lines.push('Программа «Челюсть 30 дней»: выполнено ' + j.done + '/' + j.total + ', текущий день ' + Math.min(j.cur, j.total) + ', серия ' + j.streak + ', привычки сегодня ' + j.habitsToday + '/' + j.habitsTotal + '.');
     var sk = window.SkinModule && window.SkinModule.stats ? window.SkinModule.stats() : null;
     if (sk) lines.push('Уход за кожей: тип ' + (sk.typeName || 'не определён') + (sk.acne ? ', склонность к акне' : '') + ', сегодня ' + sk.doneToday + '/' + sk.reqToday + ' шагов, серия ' + sk.streak + ', за 7 дней полностью ' + sk.last7 + '/7.');
+    // v9: own goals, sleep times, weekly summary, forecast, observations, measurements, next-weight hints
+    try {
+      var V = window.V9;
+      if (V) {
+        var off = ['sleep', 'water', 'steps', 'workout', 'weight', 'mood'].filter(function (id) { return !V.goalOn(id); });
+        if (off.length) lines.push('Пользователь не отслеживает (выключил): ' + off.map(function (id) { return V.NAMES[id]; }).join(', ') + ' — не советуй про это, если не спросит.');
+        lines.push(V.weekText(V.weekStats(V.defaultWeek())));
+      }
+      var SL = window.V9Sleep;
+      if (SL) {
+        var st2 = SL.all(), sk2 = Object.keys(st2).sort().slice(-14);
+        if (sk2.length) lines.push('Время сна (ночь: отбой–подъём, качество 1–3): ' + sk2.map(function (k) { return k + ' ' + st2[k].b + '–' + st2[k].w + (st2[k].q ? ' q' + st2[k].q : ''); }).join('; ') + '. ' + (SL.regText(SL.regularity(14)) || ''));
+      }
+      if (window.V9Insights) { var it2 = window.V9Insights.text(); if (it2) lines.push('Посчитано приложением (без ИИ):\n' + it2); }
+      if (window.V9Body) { var bt = window.V9Body.text(); if (bt) lines.push(bt); }
+      if (HM() && HM().suggest && ps && ps.plan) {
+        var sg = [];
+        ps.plan.days.forEach(function (dd) { dd.items.forEach(function (it) { if (it.k === 'w' || sg.length >= 6) return; var x = HM().suggest(it.id, it); if (x && sg.indexOf(x.text) < 0) sg.push((a.exById && a.exById(it.id) ? a.exById(it.id).ru : it.id) + ': ' + x.text); }); });
+        if (sg.length) lines.push('Подсказки следующего веса (двойная прогрессия): ' + sg.join('; ') + '.');
+      }
+    } catch (e) { /* the summary must never break the chat */ }
     return lines.join('\n');
   }
   function htmlToText(hh) {

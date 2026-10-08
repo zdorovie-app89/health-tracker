@@ -16,11 +16,11 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="styles.css?v=9.2">
-  <link rel="stylesheet" href="face.css?v=9.2">
-  <link rel="stylesheet" href="theme.css?v=9.2">
-  <link rel="stylesheet" href="pro.css?v=9.2">
-  <link rel="stylesheet" href="v9.css?v=9.2">
+  <link rel="stylesheet" href="styles.css?v=9.3">
+  <link rel="stylesheet" href="face.css?v=9.3">
+  <link rel="stylesheet" href="theme.css?v=9.3">
+  <link rel="stylesheet" href="pro.css?v=9.3">
+  <link rel="stylesheet" href="v9.css?v=9.3">
 </head>
 <body>
   <main class="app">
@@ -50,6 +50,7 @@
         <a class="chip" href="#jaw">💪 Челюсть</a>
         <a class="chip" href="#skin">🧴 Кожа</a>
         <a class="chip" href="#week">📊 Итоги недели</a>
+        <a class="chip" href="#body">📏 Замеры</a>
         <a class="chip" href="#history">📒 История</a>
         <a class="chip" href="#ai">🤖 ИИ</a>
       </nav>
@@ -185,6 +186,7 @@
         <a class="chip" href="#jaw">💪 Челюсть 30 дней</a>
         <a class="chip" href="#skin">🧴 Уход за кожей</a>
         <a class="chip" href="#week">📊 Итоги недели</a>
+        <a class="chip" href="#body">📏 Замеры</a>
       </div>
       <a class="promo-card hs-promo" href="#history">
         <span class="promo-ico" aria-hidden="true">📒</span>
@@ -219,6 +221,8 @@
         <div id="goalsList"></div>
       </section>
 
+      <section class="card" id="v9RemindCard"></section>
+
       <section class="card">
         <div class="card-head"><h2 data-i18n="data.title">Мои данные</h2></div>
         <p class="muted small" data-i18n="data.hint">Все данные хранятся только на этом устройстве. Время от времени сохраняйте резервную копию.</p>
@@ -231,12 +235,13 @@
         </div>
         <input type="file" id="importFile" accept="application/json,.json" hidden>
         <p class="muted small v9-backup-note" id="v9BackupNote"></p>
+        <div id="v9PhotoBackup"></div>
         <button class="btn install wide" id="installBtn" hidden data-i18n="data.install">Установить приложение</button>
         <p class="muted small ios-hint" id="iosHint" hidden data-i18n-html="data.iosHint">Чтобы установить на iPhone: <b>Поделиться</b> → <b>На экран «Домой»</b>.</p>
       </section>
 
 
-      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 9.2</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
+      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 9.3</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
     </section>
 
     <!-- ============ FOOD (diary + coach tips, fully offline) ============ -->
@@ -364,6 +369,7 @@
     <section class="view" id="view-ai" data-view="ai" hidden><div id="aiRoot"></div></section>
     <section class="view" id="view-history" data-view="history" hidden><div id="historyRoot"></div></section>
     <section class="view" id="view-week" data-view="week" hidden><div id="weekRoot"></div></section>
+    <section class="view" id="view-body" data-view="body" hidden><div id="bodyRoot"></div></section>
   </main>
 
   <!-- Bottom navigation -->
@@ -439,27 +445,29 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="license-data.js?v=9.2" defer></script>
-  <script src="pro.js?v=9.2" defer></script>
-  <script src="foods.js?v=9.2" defer></script>
-  <script src="exercises.js?v=9.2" defer></script>
-  <script src="tips.js?v=9.2" defer></script>
-  <script src="jaw-data.js?v=9.2" defer></script>
-  <script src="jaw.js?v=9.2" defer></script>
-  <script src="skin.js?v=9.2" defer></script>
-  <script src="history.js?v=9.2" defer></script>
-  <script src="v9.js?v=9.2" defer></script>
-  <script src="sleeptimes.js?v=9.2" defer></script>
-  <script src="insights.js?v=9.2" defer></script>
-  <script src="foodplus.js?v=9.2" defer></script>
-  <script src="ai-config.js?v=9.2" defer></script>
-  <script src="ai.js?v=9.2" defer></script>
-  <script src="app.js?v=9.2" defer></script>
+  <script src="license-data.js?v=9.3" defer></script>
+  <script src="pro.js?v=9.3" defer></script>
+  <script src="foods.js?v=9.3" defer></script>
+  <script src="exercises.js?v=9.3" defer></script>
+  <script src="tips.js?v=9.3" defer></script>
+  <script src="jaw-data.js?v=9.3" defer></script>
+  <script src="jaw.js?v=9.3" defer></script>
+  <script src="skin.js?v=9.3" defer></script>
+  <script src="history.js?v=9.3" defer></script>
+  <script src="v9.js?v=9.3" defer></script>
+  <script src="sleeptimes.js?v=9.3" defer></script>
+  <script src="insights.js?v=9.3" defer></script>
+  <script src="foodplus.js?v=9.3" defer></script>
+  <script src="body.js?v=9.3" defer></script>
+  <script src="remind.js?v=9.3" defer></script>
+  <script src="ai-config.js?v=9.3" defer></script>
+  <script src="ai.js?v=9.3" defer></script>
+  <script src="app.js?v=9.3" defer></script>
   <script>
     /* v8.1 auto-update: look for a new service worker on launch, when the app returns to the foreground and every
      * 30 min. The new worker activates at once (skipWaiting + clients.claim); then the page reloads silently if the
      * user has not touched it since launch/resume, otherwise a small «Доступно обновление — Обновить» banner appears. */
-    window.HT_VERSION = '9.2';
+    window.HT_VERSION = '9.3';
     (function () {
       if (!('serviceWorker' in navigator)) return;
       var sw = navigator.serviceWorker, hadController = !!sw.controller, reloading = false, reg = null;

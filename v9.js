@@ -158,6 +158,10 @@
       return '<section class="card v9-sug v9-weekly-sug"><button type="button" class="v9-x" data-v9="snooze-week" aria-label="Скрыть">✕</button><div class="v9-next-head"><span class="v9-next-ic" aria-hidden="true">📊</span><div class="grow"><h2>Итоги недели готовы</h2>' +
         '<p class="muted small">Сон, вес, тренировки, питание и настроение за неделю — на одном экране.</p></div></div><a class="btn primary wide" href="#week">Посмотреть</a></section>';
     }
+    if (window.V9Body && window.V9Body.due() && !((P.measure && P.measure.snooze) > Date.now())) {
+      return '<section class="card v9-sug v9-measure-sug"><button type="button" class="v9-x" data-v9="snooze-measure" aria-label="Позже">✕</button><div class="v9-next-head"><span class="v9-next-ic" aria-hidden="true">📏</span><div class="grow"><h2>Пора замерить талию и шею</h2>' +
+        '<p class="muted small">Неделя с прошлых замеров. Две минуты с сантиметровой лентой.</p></div></div><a class="btn primary wide" href="#body">Записать замеры</a></section>';
+    }
     return '';
   }
   function renderTodayTop() {
@@ -253,6 +257,7 @@
     else if (act === 'startwk') { if (window.HistoryModule) window.HistoryModule.startPlanDay(Number(b.getAttribute('data-i'))); }
     else if (act === 'snooze-backup') { P.backup.snooze = Date.now() + 7 * DAY; save(); renderTodayTop(); }
     else if (act === 'snooze-install') { P.install.snooze = Date.now() + 14 * DAY; save(); renderTodayTop(); }
+    else if (act === 'snooze-measure') { P.measure = { snooze: Date.now() + 3 * DAY }; save(); renderTodayTop(); }
     else if (act === 'snooze-week') { P.weekly.seen = defaultWeek(); save(); renderTodayTop(); }
     else if (act === 'install') { var ib = document.getElementById('installBtn'); if (ib && !ib.hidden) { ib.click(); P.install.snooze = Date.now() + 14 * DAY; save(); setTimeout(renderTodayTop, 500); } }
     else if (act === 'promos-off') { P.promosOff = true; save(); renderTodayTop(); }
