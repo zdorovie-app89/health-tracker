@@ -1,0 +1,113 @@
+{
+  "name": "Здоровье — трекер сна, воды, шагов и веса",
+  "short_name": "Здоровье",
+  "description": "Сон, вода, шаги, тренировки, вес и настроение — с годовой тепловой картой. Дневник КБЖУ с базой продуктов и программы тренировок. Программа «Челюсть 30 дней» и уход за кожей. Работает офлайн, данные хранятся на устройстве.",
+  "lang": "ru",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./index.html#today",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0c29",
+  "theme_color": "#1e1b4b",
+  "categories": [
+    "health",
+    "fitness",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Записать сон",
+      "short_name": "Сон",
+      "url": "./index.html#trends/sleep",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Вода",
+      "short_name": "Вода",
+      "url": "./index.html#trends/water",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Питание: дневник КБЖУ",
+      "short_name": "Питание",
+      "url": "./index.html#food",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Программа тренировок",
+      "short_name": "Тренировки",
+      "url": "./index.html#workouts",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Челюсть 30 дней",
+      "short_name": "Челюсть",
+      "url": "./index.html#jaw",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Уход за кожей",
+      "short_name": "Кожа",
+      "url": "./index.html#skin",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
