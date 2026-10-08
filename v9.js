@@ -218,7 +218,7 @@
     var thisMon = key(mondayOf(today0())), em = ['😫', '😕', '😐', '🙂', '😄'];
     var range = fmtD(w.mon, { day: 'numeric', month: 'short' }) + ' – ' + fmtD(w.sun, { day: 'numeric', month: 'short' });
     var tiles = [];
-    if (goalOn('sleep')) tiles.push(tile('🌙', 'Сон', w.sleep.avg === null ? '—' : num(w.sleep.avg) + ' ч', '<small>' + (w.sleep.n ? 'в среднем за ' + w.sleep.n + ' ' + plural(w.sleep.n, 'ночь', 'ночи', 'ночей') + ' · цель ' + num(w.sleep.goal) + ' ч — ' + w.sleep.met + ' из ' + w.sleep.n : 'нет записей') + '</small>' + cmp(w.sleep.avg, pw.sleep.avg, 1, ' ч', true)));
+    if (goalOn('sleep')) tiles.push(tile('🌙', 'Сон', w.sleep.avg === null ? '—' : num(w.sleep.avg) + ' ч', '<small>' + (w.sleep.n ? 'в среднем за ' + w.sleep.n + ' ' + plural(w.sleep.n, 'ночь', 'ночи', 'ночей') + ' · цель ' + num(w.sleep.goal) + ' ч — ' + w.sleep.met + ' из ' + w.sleep.n : 'нет записей') + '</small>' + (window.V9Sleep ? '<small>' + window.V9Sleep.regText(window.V9Sleep.regularity(7, w.sun)).replace('Регулярность: ', '') + '</small>' : '') + cmp(w.sleep.avg, pw.sleep.avg, 1, ' ч', true)));
     if (goalOn('weight')) tiles.push(tile('⚖️', 'Вес', w.weight.change === null ? (w.weight.end !== null ? num(w.weight.end) + ' кг' : '—') : signed(w.weight.change) + ' кг', '<small>' + (w.weight.end !== null ? 'последний замер ' + num(w.weight.end) + ' кг' : 'нет замеров за неделю') + '</small>'));
     if (goalOn('workout')) tiles.push(tile('🏋️', 'Тренировки', w.workouts.done + (w.workouts.plan ? ' из ' + w.workouts.plan : ''), '<small>' + (w.workouts.plan ? 'по плану ' + w.workouts.plan + ' в неделю' : 'плана нет') + (w.workouts.min ? ' · ' + num(w.workouts.min, 0) + ' мин' : '') + '</small>' + cmp(w.workouts.done, pw.workouts.done, 0, '', true)));
     tiles.push(tile('🍽', 'Питание', w.kcal.avg === null ? '—' : num(w.kcal.avg, 0) + ' ккал', '<small>' + (w.kcal.n ? 'в среднем за ' + w.kcal.n + ' ' + plural(w.kcal.n, 'день', 'дня', 'дней') + ' с записями' + (w.kcal.goal ? ' · цель ' + num(w.kcal.goal, 0) : '') + (w.kcal.protein !== null ? ' · белок ' + num(w.kcal.protein, 0) + (w.kcal.pGoal ? '/' + num(w.kcal.pGoal, 0) : '') + ' г' : '') : 'дневник пуст') + '</small>' + cmp(w.kcal.avg, pw.kcal.avg, 0, ' ккал')));
@@ -239,7 +239,8 @@
     var em = function (v) { return v === null ? 'нет данных' : num(v); };
     return 'Итоги недели ' + fmtD(w.mon) + ' – ' + fmtD(w.sun) + ': сон в среднем ' + em(w.sleep.avg) + ' ч (' + w.sleep.n + ' ночей, цель ' + num(w.sleep.goal) + '); ' +
       'вес ' + (w.weight.change === null ? 'без изменений/нет данных' : signed(w.weight.change) + ' кг') + '; тренировок ' + w.workouts.done + (w.workouts.plan ? ' из ' + w.workouts.plan + ' по плану' : '') + '; ' +
-      'калории в среднем ' + (w.kcal.avg === null ? 'нет данных' : num(w.kcal.avg, 0)) + (w.kcal.goal ? ' при цели ' + num(w.kcal.goal, 0) : '') + '; настроение ' + em(w.mood.avg) + ' из 5.';
+      'калории в среднем ' + (w.kcal.avg === null ? 'нет данных' : num(w.kcal.avg, 0)) + (w.kcal.goal ? ' при цели ' + num(w.kcal.goal, 0) : '') + '; настроение ' + em(w.mood.avg) + ' из 5.' +
+      (window.V9Insights ? ' ' + window.V9Insights.text().replace(/\n/g, ' ') : '');
   }
 
   /* ---------------- events ---------------- */

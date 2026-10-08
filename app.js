@@ -752,7 +752,8 @@
         h('button', { type: 'button', class: 'mini-btn', 'data-water': 500, text: '+500' })
       ]));
     } else {
-      card.appendChild(h('div', { class: 'mcard-sub', text: t('today.goal', { g: fmtVal(id, g, true) }) }));
+      var stl = id === 'sleep' && window.V9Sleep ? window.V9Sleep.line(k) : '';   // v9.1: «23:40–07:20»
+      card.appendChild(h('div', { class: 'mcard-sub', text: (stl ? stl + ' · ' : '') + t('today.goal', { g: fmtVal(id, g, true) }) }));
     }
     return card;
   }
@@ -1061,6 +1062,13 @@
     return stat(label, fmtNum(n, 0), ' ' + pluralWord(n, METRICS[id].night ? 'w.night' : 'w.day'));
   }
 
+  // v9.1: wake-time regularity (SD of the wake time over the last 14 nights that have times)
+  function regularityStat() {
+    var r = window.V9Sleep ? window.V9Sleep.regularity(14) : null;
+    var n = stat(r && r.sd !== null ? 'Регулярность · подъём, ' + window.V9Sleep.regWord(r.sd) : 'Регулярность · нужно 5 ночей со временем отбоя/подъёма', r && r.sd !== null ? '±' + r.sd : null, ' мин');
+    n.classList.add('stat-reg');
+    return n;
+  }
   function renderStatsFree() {
     var id = state.metric, m = METRICS[id], from7 = toKey(addDays(today(), -6));
     var ks = keys(id).filter(function (k) { return k >= from7; }), vals = ks.map(function (k) { return get(id, k); });
@@ -1078,6 +1086,7 @@
       out.push(stat(t('stats.goodDays'), vals.length ? String(Math.round(vals.filter(function (v) { return v >= 4; }).length / vals.length * 100)) : null, '%'));
     }
     out.push(streakStat(t('stats.streak'), currentStreak(id), id));   // v9: the current streak is free
+    if (id === 'sleep') out.push(regularityStat());
     el.stats.innerHTML = '';
     out.forEach(function (n) { el.stats.appendChild(n); });
     var lock = h('div', { class: 'stats-lock' });
@@ -1132,6 +1141,7 @@
       out.push(stat(t('stats.goalMet'), vals.length ? String(Math.round(met / vals.length * 100)) : null, '%'));
       out.push(streakStat(t('stats.streak'), currentStreak(id), id));
       out.push(streakStat(t('stats.longest'), longestStreak(ks), id));
+      if (id === 'sleep') out.push(regularityStat());
     }
     el.stats.innerHTML = '';
     out.forEach(function (n) { el.stats.appendChild(n); });
@@ -1314,6 +1324,7 @@
     }
     setSheetValue(v);
     updateSheetMeta();
+    if (window.V9Sleep) window.V9Sleep.onSheet(id, k);   // v9.1: bedtime / wake time for sleep
   }
 
   function setSheetValue(v, fromTyping) {
@@ -1374,6 +1385,7 @@
     var id = s.id, k = s.key;
     store.data[id][k] = v;
     persist();
+    if (id === 'sleep' && window.V9Sleep) window.V9Sleep.onSave(k, v);
     closeSheets();
     if (state.view === 'trends' && state.metric === id) state.year = +k.slice(0, 4);
     render();
@@ -1385,6 +1397,7 @@
     if (!s.id || !has(s.id, s.key)) return;
     delete store.data[s.id][s.key];
     persist();
+    if (s.id === 'sleep' && window.V9Sleep) window.V9Sleep.onClear(s.key);
     closeSheets();
     render();
     toast(t('sheet.cleared'));

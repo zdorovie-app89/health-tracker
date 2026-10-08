@@ -12,32 +12,35 @@
  * v8.1: auto-update — the page registers this file with updateViaCache:'none' and checks for a new version on launch,
  *     when the app comes back to the foreground and every 30 min; a new worker activates at once (skipWaiting +
  *     clients.claim) and the page reloads (silently if untouched since launch, otherwise via an «Обновить» banner).
- * v9.0: «Сегодня» = one next action, own goals, weekly summary, free JSON backup (v9.js, v9.css). */
+ * v9.0: «Сегодня» = one next action, own goals, weekly summary, free JSON backup (v9.js, v9.css).
+ * v9.1: sleep as bedtime/wake interval + regularity (sleeptimes.js), weight forecast + observations (insights.js). */
 'use strict';
 
-var CACHE_VERSION = 'health-tracker-v9.0';
+var CACHE_VERSION = 'health-tracker-v9.1';
 var APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=9.0',
-  './face.css?v=9.0',
-  './theme.css?v=9.0',
-  './pro.css?v=9.0',
-  './v9.css?v=9.0',
-  './license-data.js?v=9.0',
-  './pro.js?v=9.0',
-  './foods.js?v=9.0',
-  './exercises.js?v=9.0',
-  './tips.js?v=9.0',
-  './jaw-data.js?v=9.0',
-  './jaw.js?v=9.0',
-  './skin.js?v=9.0',
-  './history.js?v=9.0',
-  './v9.js?v=9.0',
-  './ai-config.js?v=9.0',
-  './ai.js?v=9.0',
-  './app.js?v=9.0',
-  './vendor/nacl.min.js?v=9.0',
+  './styles.css?v=9.1',
+  './face.css?v=9.1',
+  './theme.css?v=9.1',
+  './pro.css?v=9.1',
+  './v9.css?v=9.1',
+  './license-data.js?v=9.1',
+  './pro.js?v=9.1',
+  './foods.js?v=9.1',
+  './exercises.js?v=9.1',
+  './tips.js?v=9.1',
+  './jaw-data.js?v=9.1',
+  './jaw.js?v=9.1',
+  './skin.js?v=9.1',
+  './history.js?v=9.1',
+  './v9.js?v=9.1',
+  './sleeptimes.js?v=9.1',
+  './insights.js?v=9.1',
+  './ai-config.js?v=9.1',
+  './ai.js?v=9.1',
+  './app.js?v=9.1',
+  './vendor/nacl.min.js?v=9.1',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
