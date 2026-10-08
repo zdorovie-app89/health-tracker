@@ -152,3 +152,11 @@ a.btn.primary { color: #fff; }
 .v9-st[data-v9st="quick"] label { min-width: 0; flex: 1 1 40%; }
 .v9-st[data-v9st="quick"] .btn { flex: 1 1 100%; }
 .v9-st input[type="time"] { min-width: 0; }
+/* v9.5: install / share card (Profile) */
+.v9-install-card { display: grid; gap: 8px; margin-top: 12px; }
+.v9-install-card:empty { display: none; }
+.v9-install-card h3 { margin: 4px 0 0; font-size: 16px; }
+.v9-install-card p { margin: 0; }
+.v9-steps { margin: 0; padding-left: 20px; display: grid; gap: 3px; }
+.v9-apk-btn { text-decoration: none; text-align: center; }
+#installBtn.v9-hidden { display: none !important; }

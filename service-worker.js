@@ -18,39 +18,40 @@
  *     cross-origin, so this worker never caches them); next-weight suggestions in the live workout (history.js).
  * v9.3: measurements + private progress photos in IndexedDB (body.js), local reminders (remind.js) — a tap on a
  *     reminder notification focuses / opens the app (notificationclick below).
+ * v9.5: integrity self-check requests (header X-HT-IC) and /download/ (Android APK) bypass this worker.
  * v9.4: store-guard.js (localStorage quota guard), vendor/zxing.min.js (barcode from a photo, kept for offline use). */
 'use strict';
 
-var CACHE_VERSION = 'health-tracker-v9.4';
+var CACHE_VERSION = 'health-tracker-v9.5';
 var APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=9.4',
-  './face.css?v=9.4',
-  './theme.css?v=9.4',
-  './pro.css?v=9.4',
-  './v9.css?v=9.4',
-  './store-guard.js?v=9.4',
-  './license-data.js?v=9.4',
-  './pro.js?v=9.4',
-  './foods.js?v=9.4',
-  './exercises.js?v=9.4',
-  './tips.js?v=9.4',
-  './jaw-data.js?v=9.4',
-  './jaw.js?v=9.4',
-  './skin.js?v=9.4',
-  './history.js?v=9.4',
-  './v9.js?v=9.4',
-  './sleeptimes.js?v=9.4',
-  './insights.js?v=9.4',
-  './foodplus.js?v=9.4',
-  './body.js?v=9.4',
-  './remind.js?v=9.4',
-  './ai-config.js?v=9.4',
-  './ai.js?v=9.4',
-  './app.js?v=9.4',
-  './vendor/nacl.min.js?v=9.4',
-  './vendor/zxing.min.js?v=9.4',
+  './styles.css?v=9.5',
+  './face.css?v=9.5',
+  './theme.css?v=9.5',
+  './pro.css?v=9.5',
+  './v9.css?v=9.5',
+  './store-guard.js?v=9.5',
+  './license-data.js?v=9.5',
+  './pro.js?v=9.5',
+  './foods.js?v=9.5',
+  './exercises.js?v=9.5',
+  './tips.js?v=9.5',
+  './jaw-data.js?v=9.5',
+  './jaw.js?v=9.5',
+  './skin.js?v=9.5',
+  './history.js?v=9.5',
+  './v9.js?v=9.5',
+  './sleeptimes.js?v=9.5',
+  './insights.js?v=9.5',
+  './foodplus.js?v=9.5',
+  './body.js?v=9.5',
+  './remind.js?v=9.5',
+  './ai-config.js?v=9.5',
+  './ai.js?v=9.5',
+  './app.js?v=9.5',
+  './vendor/nacl.min.js?v=9.5',
+  './vendor/zxing.min.js?v=9.5',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -182,6 +183,8 @@ self.addEventListener('fetch', function (event) {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.indexOf('/api/') !== -1) return;
   if (/\/revoked\.json$/.test(url.pathname)) return;   // always straight from the network
+  if (url.pathname.indexOf('/download/') !== -1) return;   // v9.5: the Android APK is never cached
+  if (req.headers.get('X-HT-IC')) return;   // v9.5: integrity self-check reads the real files from the network
   var isNav = req.mode === 'navigate';
 
   event.respondWith(

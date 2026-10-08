@@ -16,11 +16,11 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="styles.css?v=9.4">
-  <link rel="stylesheet" href="face.css?v=9.4">
-  <link rel="stylesheet" href="theme.css?v=9.4">
-  <link rel="stylesheet" href="pro.css?v=9.4">
-  <link rel="stylesheet" href="v9.css?v=9.4">
+  <link rel="stylesheet" href="styles.css?v=9.5">
+  <link rel="stylesheet" href="face.css?v=9.5">
+  <link rel="stylesheet" href="theme.css?v=9.5">
+  <link rel="stylesheet" href="pro.css?v=9.5">
+  <link rel="stylesheet" href="v9.css?v=9.5">
 </head>
 <body>
   <main class="app">
@@ -230,11 +230,12 @@
         <p class="muted small v9-backup-note" id="v9BackupNote"></p>
         <div id="v9PhotoBackup"></div>
         <button class="btn install wide" id="installBtn" hidden data-i18n="data.install">Установить приложение</button>
+        <div class="v9-install-card" id="v9InstallCard"></div>
         <p class="muted small ios-hint" id="iosHint" hidden data-i18n-html="data.iosHint">Чтобы установить на iPhone: <b>Поделиться</b> → <b>На экран «Домой»</b>.</p>
       </section>
 
 
-      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 9.4</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
+      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 9.5</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
     </section>
 
     <!-- ============ FOOD (diary + coach tips, fully offline) ============ -->
@@ -438,30 +439,30 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="store-guard.js?v=9.4" defer></script>
-  <script src="license-data.js?v=9.4" defer></script>
-  <script src="pro.js?v=9.4" defer></script>
-  <script src="foods.js?v=9.4" defer></script>
-  <script src="exercises.js?v=9.4" defer></script>
-  <script src="tips.js?v=9.4" defer></script>
-  <script src="jaw-data.js?v=9.4" defer></script>
-  <script src="jaw.js?v=9.4" defer></script>
-  <script src="skin.js?v=9.4" defer></script>
-  <script src="history.js?v=9.4" defer></script>
-  <script src="v9.js?v=9.4" defer></script>
-  <script src="sleeptimes.js?v=9.4" defer></script>
-  <script src="insights.js?v=9.4" defer></script>
-  <script src="foodplus.js?v=9.4" defer></script>
-  <script src="body.js?v=9.4" defer></script>
-  <script src="remind.js?v=9.4" defer></script>
-  <script src="ai-config.js?v=9.4" defer></script>
-  <script src="ai.js?v=9.4" defer></script>
-  <script src="app.js?v=9.4" defer></script>
+  <script src="store-guard.js?v=9.5" defer></script>
+  <script src="license-data.js?v=9.5" defer></script>
+  <script src="pro.js?v=9.5" defer></script>
+  <script src="foods.js?v=9.5" defer></script>
+  <script src="exercises.js?v=9.5" defer></script>
+  <script src="tips.js?v=9.5" defer></script>
+  <script src="jaw-data.js?v=9.5" defer></script>
+  <script src="jaw.js?v=9.5" defer></script>
+  <script src="skin.js?v=9.5" defer></script>
+  <script src="history.js?v=9.5" defer></script>
+  <script src="v9.js?v=9.5" defer></script>
+  <script src="sleeptimes.js?v=9.5" defer></script>
+  <script src="insights.js?v=9.5" defer></script>
+  <script src="foodplus.js?v=9.5" defer></script>
+  <script src="body.js?v=9.5" defer></script>
+  <script src="remind.js?v=9.5" defer></script>
+  <script src="ai-config.js?v=9.5" defer></script>
+  <script src="ai.js?v=9.5" defer></script>
+  <script src="app.js?v=9.5" defer></script>
   <script>
     /* v8.1 auto-update: look for a new service worker on launch, when the app returns to the foreground and every
      * 30 min. The new worker activates at once (skipWaiting + clients.claim); then the page reloads silently if the
      * user has not touched it since launch/resume, otherwise a small «Доступно обновление — Обновить» banner appears. */
-    window.HT_VERSION = '9.4';
+    window.HT_VERSION = '9.5';
     (function () {
       if (!('serviceWorker' in navigator)) return;
       var sw = navigator.serviceWorker, hadController = !!sw.controller, reloading = false, reg = null;

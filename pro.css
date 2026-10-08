@@ -262,3 +262,6 @@
 .pro-gift-card h2 { text-align: center; }
 .pro-gift-line { text-align: center; font-size: 17px; margin: 4px 0 8px; }
 @keyframes giftPop { 0% { transform: scale(.4) rotate(-12deg); opacity: 0; } 70% { transform: scale(1.12) rotate(4deg); opacity: 1; } 100% { transform: none; } }
+/* v9.5: integrity warning */
+.pro-tamper { margin: 10px 0; padding: 12px 14px; border-radius: 14px; background: rgba(248, 113, 113, .12); border: 1px solid rgba(248, 113, 113, .35); display: grid; gap: 4px; }
+.pro-tamper small { color: var(--muted); line-height: 1.4; }
