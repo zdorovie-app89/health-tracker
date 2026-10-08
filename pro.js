@@ -85,7 +85,7 @@
     if (!naclPromise) {
       naclPromise = new Promise(function (res, rej) {
         var s = document.createElement('script');
-        s.src = 'vendor/nacl.min.js?v=9.1';
+        s.src = 'vendor/nacl.min.js?v=9.2';
         s.onload = function () { window.nacl && window.nacl.sign ? res(window.nacl) : rej(new Error('nacl')); };
         s.onerror = function () { naclPromise = null; rej(new Error('nacl load')); };
         document.head.appendChild(s);
@@ -384,7 +384,7 @@
     if (window.V9Insights) a.push('прогноз веса и наблюдения за 7 дней');
     if (window.V9Sleep) a.push('сон по времени отбоя и подъёма, регулярность');
     a.push('поиск и дневник еды' + (window.V9Food ? ' со штрихкодами, избранным и «Повторить вчера»' : ''));
-    a.push('тренировки с картинками' + (window.V9Workout ? ' и подсказкой следующего веса' : ''));
+    a.push('тренировки с картинками' + (window.HistoryModule && window.HistoryModule.suggest ? ' и подсказкой следующего веса' : ''));
     if (window.V9Body) a.push('замеры талии и шеи, фото «было / стало»');
     if (window.V9Remind) a.push('напоминания');
     a.push('неделя 1 программы для челюсти', 'базовый уход за кожей', 'статистика за 7 дней');

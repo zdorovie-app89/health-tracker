@@ -1608,6 +1608,10 @@
         if (typeof x.fid === 'string' && x.fid.length <= 40) e.fid = x.fid;
         var g = Number(x.g);
         if (x.g !== undefined && x.g !== null && isFinite(g) && g > 0 && g <= 5000) e.g = Math.round(g);
+        // v9.2: optional fiber (only new entries have it) and the barcode the product came from
+        var fb = Number(x.fib);
+        if (x.fib !== undefined && x.fib !== null && x.fib !== '' && isFinite(fb) && fb >= 0 && fb <= 300) e.fib = Math.round(fb * 10) / 10;
+        if (typeof x.bc === 'string' && /^\d{6,14}$/.test(x.bc)) e.bc = x.bc;
         return e;
       });
       if (list.length) out[k] = list;
@@ -1618,7 +1622,7 @@
   var food = sanitizeFood(readJSON(FOOD_KEY, {}));
   function saveFood() { if (!writeJSON(FOOD_KEY, food)) toast(t('data.storageError')); }
   function foodTotals(k) {
-    return (food[k] || []).reduce(function (a, x) { a.kcal += x.kcal; a.p += x.p; a.f += x.f; a.c += x.c; return a; },
+    return (food[k] || []).reduce(function (a, x) { a.kcal += x.kcal; a.p += x.p; a.f += x.f; a.c += x.c; if (x.fib !== undefined) { a.fib = (a.fib || 0) + x.fib; } return a; },
       { kcal: 0, p: 0, f: 0, c: 0 });
   }
   function dbName(f) { return f[settings.lang] || f.ru; }
@@ -1821,6 +1825,7 @@
     var q = el.foodSearch.value.trim();
     if (!q) {
       var rec = recentFoods(6);
+      if (rec.length && window.V9Food) return;   // v9.2: recent items are one-tap chips in #v9FoodQuick
       var lbl = rec.length ? t('food.recent') : t('food.popular');
       box.appendChild(h('div', { class: 'fres-lbl', text: lbl }));
       if (rec.length) {
@@ -1922,7 +1927,10 @@
     var p = vals[1] || 0, f = vals[2] || 0, c = vals[3] || 0;
     var kcal = vals[0] !== null ? vals[0] : p * 4 + f * 9 + c * 4;
     if (!(kcal > 0) || kcal > 10000 || p > 1000 || f > 1000 || c > 2000) { toast(t('food.cInvalid')); return; }
-    addEntry({ name: name || t('food.customName'), kcal: Math.round(kcal), p: r1(p), f: r1(f), c: r1(c) });
+    var ce = { name: name || t('food.customName'), kcal: Math.round(kcal), p: r1(p), f: r1(f), c: r1(c) };
+    var fbi = $('cFib'), fbv = fbi && fbi.value.trim() !== '' ? parseInputNumber(fbi.value) : null;   // v9.2: optional fiber
+    if (fbv !== null) { if (!(isFinite(fbv) && fbv >= 0 && fbv <= 300)) { toast(t('food.cInvalid')); return; } ce.fib = r1(fbv); }
+    addEntry(ce);
     el.foodCustom.reset();
     renderFood();
   }
@@ -1930,7 +1938,9 @@
     var src = null;
     Object.keys(food).forEach(function (k) { food[k].forEach(function (x) { if (x.id === id) src = x; }); });
     if (!src) return;
-    addEntry({ name: src.name, kcal: src.kcal, p: src.p, f: src.f, c: src.c });
+    var re = { name: src.name, kcal: src.kcal, p: src.p, f: src.f, c: src.c };
+    if (src.g) re.g = src.g; if (src.fib !== undefined) re.fib = src.fib; if (src.bc) re.bc = src.bc;
+    addEntry(re);
     renderFood();
   }
   function removeFood(id) {
@@ -1946,8 +1956,10 @@
     box.innerHTML = '';
     if (!list.length) { box.appendChild(h('div', { class: 'food-empty', text: t('food.none') })); return; }
     list.forEach(function (x) {
-      var sub = (x.g ? fmtNum(x.g, 0) + ' ' + t('kbju.g') + ' · ' : '') + macroLine(x.p, x.f, x.c);
+      var sub = (x.g ? fmtNum(x.g, 0) + ' ' + t('kbju.g') + ' · ' : '') + macroLine(x.p, x.f, x.c) + (x.fib !== undefined ? ' · клетч. ' + fmtNum(x.fib, 1) + ' ' + t('kbju.g') : '');
+      var fav = window.V9Food && window.V9Food.isFav(x);
       box.appendChild(h('div', { class: 'food-row' }, [
+        window.V9Food ? h('button', { type: 'button', class: 'icon-btn v9-star' + (fav ? ' on' : ''), 'data-v9fav': x.id, 'aria-pressed': String(!!fav), 'aria-label': fav ? 'Убрать из избранного' : 'В избранное', text: fav ? '★' : '☆' }) : null,
         h('div', { class: 'fr-main' }, [h('span', { class: 'fr-name', text: entryName(x) }), h('span', { class: 'fr-sub', text: sub })]),
         h('span', { class: 'fr-k', text: fmtNum(x.kcal, 0) + ' ' + t('kbju.kcal') }),
         h('button', { type: 'button', class: 'icon-btn', 'data-food-del': x.id, 'aria-label': t('food.remove') }, [icon(ICON_X)])
@@ -1991,6 +2003,7 @@
     if (!fs.sel) { el.foodPick.hidden = true; el.foodPick.innerHTML = ''; }
     renderFoodDiary();
     renderCoach();
+    if (window.V9Food) window.V9Food.render();   // v9.2: repeat yesterday, favourites, recent, barcode
   }
   function renderFoodPromo() {
     var k = todayKey(), tot = foodTotals(k), g = kcalGoal();
@@ -2582,7 +2595,21 @@
     view: function () { return state.view; },
     saveFood: function () { saveFood(); },
     uid: function () { return uid(); },
-    metric: function (id) { return METRICS[id] || null; }
+    metric: function (id) { return METRICS[id] || null; },
+    foodDay: function () { return foodDay(); }, dayLabel: function (k) { return dayLabel(k); },
+    addEntry: function (e, k) {   // v9.2: add a diary entry (to the day open on the food screen, or k)
+      var x = { name: String(e.name || '').slice(0, 120), kcal: Math.max(0, Math.round(Number(e.kcal) || 0)), p: r1(Number(e.p) || 0), f: r1(Number(e.f) || 0), c: r1(Number(e.c) || 0) };
+      if (e.fid && FOOD_BY_ID[e.fid]) x.fid = e.fid;
+      if (e.g >= 1 && e.g <= 5000) x.g = Math.round(e.g);
+      if (e.fib !== undefined && e.fib !== null && isFinite(Number(e.fib))) x.fib = r1(Number(e.fib));
+      if (typeof e.bc === 'string' && /^\d{6,14}$/.test(e.bc)) x.bc = e.bc;
+      var day = k && isValidKey(k) ? k : foodDay();
+      x.id = uid(); x.at = Date.now();
+      (food[day] = food[day] || []).push(x);
+      return x;
+    },
+    afterFoodChange: function (msg) { saveFood(); if (msg) toast(msg); if (state.view === 'food' || state.view === 'today') render(); },
+    fmtNum: fmtNum
   };
 
   // ======================================================================

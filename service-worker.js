@@ -13,34 +13,37 @@
  *     when the app comes back to the foreground and every 30 min; a new worker activates at once (skipWaiting +
  *     clients.claim) and the page reloads (silently if untouched since launch, otherwise via an «Обновить» banner).
  * v9.0: «Сегодня» = one next action, own goals, weekly summary, free JSON backup (v9.js, v9.css).
- * v9.1: sleep as bedtime/wake interval + regularity (sleeptimes.js), weight forecast + observations (insights.js). */
+ * v9.1: sleep as bedtime/wake interval + regularity (sleeptimes.js), weight forecast + observations (insights.js).
+ * v9.2: food speed — repeat yesterday, favourites, recent, barcode via Open Food Facts (foodplus.js; the lookups are
+ *     cross-origin, so this worker never caches them); next-weight suggestions in the live workout (history.js). */
 'use strict';
 
-var CACHE_VERSION = 'health-tracker-v9.1';
+var CACHE_VERSION = 'health-tracker-v9.2';
 var APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=9.1',
-  './face.css?v=9.1',
-  './theme.css?v=9.1',
-  './pro.css?v=9.1',
-  './v9.css?v=9.1',
-  './license-data.js?v=9.1',
-  './pro.js?v=9.1',
-  './foods.js?v=9.1',
-  './exercises.js?v=9.1',
-  './tips.js?v=9.1',
-  './jaw-data.js?v=9.1',
-  './jaw.js?v=9.1',
-  './skin.js?v=9.1',
-  './history.js?v=9.1',
-  './v9.js?v=9.1',
-  './sleeptimes.js?v=9.1',
-  './insights.js?v=9.1',
-  './ai-config.js?v=9.1',
-  './ai.js?v=9.1',
-  './app.js?v=9.1',
-  './vendor/nacl.min.js?v=9.1',
+  './styles.css?v=9.2',
+  './face.css?v=9.2',
+  './theme.css?v=9.2',
+  './pro.css?v=9.2',
+  './v9.css?v=9.2',
+  './license-data.js?v=9.2',
+  './pro.js?v=9.2',
+  './foods.js?v=9.2',
+  './exercises.js?v=9.2',
+  './tips.js?v=9.2',
+  './jaw-data.js?v=9.2',
+  './jaw.js?v=9.2',
+  './skin.js?v=9.2',
+  './history.js?v=9.2',
+  './v9.js?v=9.2',
+  './sleeptimes.js?v=9.2',
+  './insights.js?v=9.2',
+  './foodplus.js?v=9.2',
+  './ai-config.js?v=9.2',
+  './ai.js?v=9.2',
+  './app.js?v=9.2',
+  './vendor/nacl.min.js?v=9.2',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

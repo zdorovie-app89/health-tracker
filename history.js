@@ -141,10 +141,41 @@
     else { st.r = p && p.r ? p.r : it ? it.hi || it.lo : 10; if (p && p.w) st.w = p.w; }
     return st;
   }
+  /* v9.2: next weight — double progression.
+   * Last session's working weight × reps: if every working set reached the top of the rep range → +2,5 kg
+   * (+1 kg for dumbbells / isolation / light weights) and back to the bottom of the range; otherwise +1 rep, same weight. */
+  function stepFor(x, w) {
+    if (!x || /(^|_)db(_|$)|dumbbell|kettlebell/i.test(x.id + ' ' + x.en) || /гантел|гир/i.test(x.ru)) return 1;   // dumbbells: +1 kg
+    return x.compound && x.eq === 'gym' && w >= 20 ? 2.5 : 1;
+  }
+  function suggestion(exId, k, it) {
+    var prev = lastSetsFor(exId); if (!prev || !prev.length) return null;
+    var x = exById(exId), lo = it && it.lo && it.u !== 's' && it.u !== 'ss' && it.u !== 'm' ? it.lo : null, hi = it && it.hi && it.u !== 's' && it.u !== 'ss' && it.u !== 'm' ? it.hi : null;
+    if (k === 'w') {
+      var ws = prev.filter(function (st) { return st.w > 0 && st.r > 0; }); if (!ws.length) return null;
+      var w = Math.max.apply(null, ws.map(function (st) { return st.w; })), work = ws.filter(function (st) { return st.w === w; });
+      var rMin = Math.min.apply(null, work.map(function (st) { return st.r; })), top = hi || Math.max(12, rMin);
+      var allTop = work.length >= Math.min(2, prev.length) && work.every(function (st) { return st.r >= top; }), inc = stepFor(x, w), nw = Math.round((w + inc) * 100) / 100;
+      var t = 'Прошлый раз ' + num(w) + '×' + rMin + ' → сегодня ';
+      if (allTop) return { w: nw, r: lo || Math.max(1, rMin - 2), up: true, text: t + num(nw) + '×' + (lo || Math.max(1, rMin - 2)) + ' (все подходы на верхней границе — прибавь вес)' };
+      return { w: w, r: Math.min(top, rMin + 1), text: t + num(w) + '×' + Math.min(top, rMin + 1) + ' или ' + num(nw) + '×' + rMin };
+    }
+    if (k === 'r') {
+      var rs = prev.filter(function (st) { return st.r > 0; }); if (!rs.length) return null;
+      var r0 = Math.min.apply(null, rs.map(function (st) { return st.r; })), top2 = hi || 20, extra = Math.max.apply(null, rs.map(function (st) { return st.w || 0; }));
+      if (r0 >= top2) return { r: r0, w: extra || undefined, text: 'Прошлый раз ' + r0 + ' повт.' + (extra ? ' +' + num(extra) + ' кг' : '') + ' → дошёл до ' + top2 + ': усложни вариант или добавь отягощение' };
+      return { r: r0 + 1, w: extra || undefined, text: 'Прошлый раз ' + r0 + ' повт.' + (extra ? ' +' + num(extra) + ' кг' : '') + ' → сегодня ' + (r0 + 1) };
+    }
+    return null;
+  }
   function liveEx(exId, it) {
-    var x = exById(exId), k = kindOf(x, it && it.u), n = it ? it.sets || 1 : 3, sets = [];
-    for (var i = 0; i < n; i++) sets.push(newSet(exId, k, it, i));
-    return { id: exId, name: x ? x.ru : exId, k: k, target: it ? (A().fmtReps ? (it.sets > 1 ? it.sets + ' × ' : '') + A().fmtReps(it) : '') : '', rest: it ? it.rest : (x && x.compound ? 90 : 60), sets: sets };
+    var x = exById(exId), k = kindOf(x, it && it.u), n = it ? it.sets || 1 : 3, sets = [], sug = suggestion(exId, k, it);
+    for (var i = 0; i < n; i++) {
+      var st = newSet(exId, k, it, i);
+      if (sug) { if (sug.r) st.r = sug.r; if (sug.w) st.w = sug.w; }   // prefill with today's suggestion
+      sets.push(st);
+    }
+    return { id: exId, name: x ? x.ru : exId, k: k, target: it ? (A().fmtReps ? (it.sets > 1 ? it.sets + ' × ' : '') + A().fmtReps(it) : '') : '', rest: it ? it.rest : (x && x.compound ? 90 : 60), sets: sets, sug: sug ? sug.text : undefined };
   }
   function startPlanDay(i) {
     var ps = A().plan(), d = ps && ps.plan && ps.plan.days[i];
@@ -152,12 +183,14 @@
     if (H.live && !confirm('Уже идёт тренировка «' + H.live.title + '». Начать новую? Текущая будет удалена.')) { location.hash = '#history/live'; return; }
     H.live = { id: uidW(), start: Date.now(), title: A().dayTitle ? A().dayTitle(d) : 'Тренировка', src: 'plan',
       ex: d.items.filter(function (it) { return it.k !== 'w'; }).map(function (it) { return liveEx(it.id, it); }) };
-    save(); location.hash = '#history/live';
+    save(); openLive();
   }
+  // v9.2: the hash may already be #history/live (empty live screen) — then re-render instead of waiting for hashchange
+  function openLive() { if (location.hash === '#history/live') { render(['live']); window.scrollTo(0, 0); } else location.hash = '#history/live'; }
   function startFree() {
     if (H.live) { location.hash = '#history/live'; return; }
     H.live = { id: uidW(), start: Date.now(), title: 'Свободная тренировка', src: 'free', ex: [] };
-    save(); location.hash = '#history/live';
+    save(); openLive();
   }
   function finishLive() {
     var L = H.live; if (!L) return;
@@ -408,7 +441,7 @@
   function exEditor(e, xi, live) {
     var prev = live ? lastSetsFor(e.id) : null;
     return '<section class="card hs-excard" data-xi="' + xi + '"><div class="hs-exhead2">' + exImg(e.id, 'ex-thumb') + '<div class="grow"><b>' + esc(exName(e)) + '</b>' +
-      (e.target ? '<small>План: ' + esc(e.target) + '</small>' : '') + (prev ? '<small>Прошлый раз: ' + esc(setsStr({ k: e.k, sets: prev })) + '</small>' : '') + '</div>' +
+      (e.target ? '<small>План: ' + esc(e.target) + '</small>' : '') + (live && e.sug ? '<small class="hs-sug">📈 ' + esc(e.sug) + '</small>' : prev ? '<small>Прошлый раз: ' + esc(setsStr({ k: e.k, sets: prev })) + '</small>' : '') + '</div>' +
       '<button type="button" class="icon-btn hs-x" data-hs="rmex" aria-label="Убрать упражнение">✕</button></div>' +
       e.sets.map(function (s, i) { return setRow(e, s, i, live); }).join('') +
       '<div class="hs-row-btns"><button type="button" class="btn small" data-hs="addset">＋ подход</button>' + (e.sets.length > 1 ? '<button type="button" class="btn small ghost" data-hs="rmset">− подход</button>' : '') + '</div></section>';
@@ -544,6 +577,7 @@
     list: list, workoutsBetween: workoutsBetween, exSessions: exSessions, bestOf: bestOf, doneExercises: doneExercises,
     jaw: jawList, skin: skinList, forAI: forAI, setsStr: setsStr, setStr: setStr, tonnage: tonnage, setCount: setCount, exName: exName, fmtDay: fmtDay, fmtTime: fmtTime,
     exportData: exportData, importData: importData, count: count, demo: demo, isLive: function () { return !!H.live; },
-    reload: function () { H = load(); }
+    reload: function () { H = load(); },
+    suggest: function (id, it) { var x = exById(id); return suggestion(id, kindOf(x, it && it.u), it || null); }   // v9.2
   };
 })();

@@ -85,3 +85,34 @@ a.btn.primary { color: #fff; }
 .v9-obs p { margin: 0; font-size: 14px; line-height: 1.4; color: #ddd6fe; }
 .v9-obs-tag { font-size: 11px; font-weight: 700; color: var(--muted); border: 1px solid var(--line-2); border-radius: 999px; padding: 1px 7px; margin-left: 4px; white-space: nowrap; }
 .v9-obs-few p, .v9-obs-none p { color: var(--muted); }
+
+/* v9.2 food speed */
+.fc-grid .fc-fib { grid-column: span 2; }
+#v9FoodQuick:empty { display: none; }
+#v9FoodQuick { margin: 10px 0 2px; }
+.v9-repeat { width: 100%; justify-content: flex-start; gap: 8px; min-height: 46px; margin-bottom: 6px; }
+.v9-repeat small { margin-left: auto; color: var(--muted); font-weight: 600; font-size: 12.5px; }
+.v9-fq-row { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; }
+.v9-fq-row::-webkit-scrollbar { display: none; }
+.chip.v9-fq { flex: none; min-height: 40px; padding: 0 12px; font-size: 13.5px; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.chip.v9-fq small { color: var(--muted); font-weight: 600; font-size: 11.5px; }
+.v9-fq-undo { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(134, 239, 172, .1); font-size: 14px; margin-bottom: 6px; }
+.v9-fq-hint { margin: 0 0 6px; }
+.v9-star { font-size: 19px; color: var(--muted); margin-left: -8px; flex: none; }
+.v9-star.on { color: #fbbf24; }
+.v9-bc { border: 1px solid var(--line-2); border-radius: 16px; padding: 12px; margin: 10px 0 4px; background: rgba(255, 255, 255, .04); }
+.v9-bc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.v9-bc-video { width: 100%; max-height: 240px; border-radius: 12px; background: #000; object-fit: cover; }
+.v9-bc-manual { display: flex; gap: 8px; margin-top: 8px; }
+.v9-bc-manual .num-input { flex: 1; min-width: 0; text-align: left; padding: 0 12px; min-height: 44px; font-size: 16px; letter-spacing: .04em; }
+.v9-bc-msg { margin: 6px 0; font-size: 14px; }
+.v9-bc-prod b { display: block; font-size: 16px; }
+.v9-bc-prod small { display: block; margin-top: 3px; line-height: 1.35; }
+.v9-bc-g { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 6px; font-weight: 700; font-size: 14px; }
+.v9-bc-g .num-input { width: 96px; min-height: 42px; }
+.v9-bc-calc { margin: 0 0 10px; font-size: 14px; }
+.v9-bc-grid { grid-template-columns: repeat(5, 1fr); }
+.v9-bc-again { display: block; margin: 8px auto 0; }
+.v9-bc-btn { white-space: nowrap; }
+/* v9.2 next weight */
+.hs-sug { color: #86efac !important; font-weight: 700; line-height: 1.3; }

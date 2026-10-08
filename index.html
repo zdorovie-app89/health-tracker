@@ -16,11 +16,11 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="styles.css?v=9.1">
-  <link rel="stylesheet" href="face.css?v=9.1">
-  <link rel="stylesheet" href="theme.css?v=9.1">
-  <link rel="stylesheet" href="pro.css?v=9.1">
-  <link rel="stylesheet" href="v9.css?v=9.1">
+  <link rel="stylesheet" href="styles.css?v=9.2">
+  <link rel="stylesheet" href="face.css?v=9.2">
+  <link rel="stylesheet" href="theme.css?v=9.2">
+  <link rel="stylesheet" href="pro.css?v=9.2">
+  <link rel="stylesheet" href="v9.css?v=9.2">
 </head>
 <body>
   <main class="app">
@@ -236,7 +236,7 @@
       </section>
 
 
-      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 9.1</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
+      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 9.2</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
     </section>
 
     <!-- ============ FOOD (diary + coach tips, fully offline) ============ -->
@@ -267,8 +267,11 @@
           </label>
           <div class="food-photo-row">
             <button type="button" class="btn small food-photo-btn" data-ai-photo="food"><span aria-hidden="true">📷</span> Распознать по фото <span class="pro-tag">Pro</span></button>
+            <button type="button" class="btn small v9-bc-btn" data-v9bc="open"><span aria-hidden="true">▥</span> Штрихкод</button>
             <input type="file" id="foodPhotoInput" accept="image/*" hidden>
           </div>
+          <div id="v9Barcode" hidden></div>
+          <div id="v9FoodQuick"></div>
           <div id="foodPhotoBox"></div>
           <div class="food-results" id="foodResults"></div>
           <div class="food-pick" id="foodPick" hidden></div>
@@ -281,6 +284,7 @@
             <label class="fc-field"><span data-i18n="food.cP">Белки, г</span><input class="num-input" id="cP" type="text" inputmode="decimal" maxlength="6" placeholder="0"></label>
             <label class="fc-field"><span data-i18n="food.cF">Жиры, г</span><input class="num-input" id="cF" type="text" inputmode="decimal" maxlength="6" placeholder="0"></label>
             <label class="fc-field"><span data-i18n="food.cC">Углеводы, г</span><input class="num-input" id="cC" type="text" inputmode="decimal" maxlength="6" placeholder="0"></label>
+            <label class="fc-field fc-fib"><span>Клетчатка, г <small class="muted">(необяз.)</small></span><input class="num-input" id="cFib" type="text" inputmode="decimal" maxlength="5" placeholder="—"></label>
           </div>
           <p class="muted small" data-i18n="food.cHint">Значения на всю порцию. Если не указать ккал, они посчитаются из БЖУ.</p>
           <button type="submit" class="btn primary wide" data-i18n="food.addBtn">Добавить в дневник</button>
@@ -435,26 +439,27 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="license-data.js?v=9.1" defer></script>
-  <script src="pro.js?v=9.1" defer></script>
-  <script src="foods.js?v=9.1" defer></script>
-  <script src="exercises.js?v=9.1" defer></script>
-  <script src="tips.js?v=9.1" defer></script>
-  <script src="jaw-data.js?v=9.1" defer></script>
-  <script src="jaw.js?v=9.1" defer></script>
-  <script src="skin.js?v=9.1" defer></script>
-  <script src="history.js?v=9.1" defer></script>
-  <script src="v9.js?v=9.1" defer></script>
-  <script src="sleeptimes.js?v=9.1" defer></script>
-  <script src="insights.js?v=9.1" defer></script>
-  <script src="ai-config.js?v=9.1" defer></script>
-  <script src="ai.js?v=9.1" defer></script>
-  <script src="app.js?v=9.1" defer></script>
+  <script src="license-data.js?v=9.2" defer></script>
+  <script src="pro.js?v=9.2" defer></script>
+  <script src="foods.js?v=9.2" defer></script>
+  <script src="exercises.js?v=9.2" defer></script>
+  <script src="tips.js?v=9.2" defer></script>
+  <script src="jaw-data.js?v=9.2" defer></script>
+  <script src="jaw.js?v=9.2" defer></script>
+  <script src="skin.js?v=9.2" defer></script>
+  <script src="history.js?v=9.2" defer></script>
+  <script src="v9.js?v=9.2" defer></script>
+  <script src="sleeptimes.js?v=9.2" defer></script>
+  <script src="insights.js?v=9.2" defer></script>
+  <script src="foodplus.js?v=9.2" defer></script>
+  <script src="ai-config.js?v=9.2" defer></script>
+  <script src="ai.js?v=9.2" defer></script>
+  <script src="app.js?v=9.2" defer></script>
   <script>
     /* v8.1 auto-update: look for a new service worker on launch, when the app returns to the foreground and every
      * 30 min. The new worker activates at once (skipWaiting + clients.claim); then the page reloads silently if the
      * user has not touched it since launch/resume, otherwise a small «Доступно обновление — Обновить» banner appears. */
-    window.HT_VERSION = '9.1';
+    window.HT_VERSION = '9.2';
     (function () {
       if (!('serviceWorker' in navigator)) return;
       var sw = navigator.serviceWorker, hadController = !!sw.controller, reloading = false, reg = null;
