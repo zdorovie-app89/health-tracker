@@ -680,7 +680,8 @@
     if (d.steps && d.steps[k] !== undefined) extra.push('шаги ' + b(num(d.steps[k], 0)));
     if (d.sleep && d.sleep[k] !== undefined) extra.push('сон ' + b(num(d.sleep[k]) + ' ч'));
     var ft = foodDay(k).length ? foodTot(k) : null; if (ft) extra.push('еда ' + b(num(ft.kcal, 0) + ' ккал') + ', белок ' + num(ft.p, 0) + ' г');
-    if (extra.length) out.push('Ещё в этот день: ' + extra.join(', ') + '.');
+    var noAct = !out.length;
+    if (extra.length) out.push((noAct ? 'Тренировок, челюсти и ухода в истории за этот день нет. Отмечено: ' : 'Ещё в этот день: ') + extra.join(', ') + '.');
     if (!out.length) return lbl + ': записей нет — ни тренировок, ни челюсти, ни ухода. ' + (k < a.todayKey() ? 'Прошедшую тренировку можно добавить в «Истории» → «＋ Прошедшая тренировка».' : '') + chips(['Что я делал вчера?', 'Тренировки на этой неделе']);
     return b(lbl) + ':<br>' + out.join('<br>') + '<div class="ai-inchips"><a class="qa-chip" href="#history/day/' + k + '">Открыть день в истории</a></div>';
   }
