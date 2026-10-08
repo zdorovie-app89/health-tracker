@@ -16,10 +16,11 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="styles.css?v=8.1">
-  <link rel="stylesheet" href="face.css?v=8.1">
-  <link rel="stylesheet" href="theme.css?v=8.1">
-  <link rel="stylesheet" href="pro.css?v=8.1">
+  <link rel="stylesheet" href="styles.css?v=9.0">
+  <link rel="stylesheet" href="face.css?v=9.0">
+  <link rel="stylesheet" href="theme.css?v=9.0">
+  <link rel="stylesheet" href="pro.css?v=9.0">
+  <link rel="stylesheet" href="v9.css?v=9.0">
 </head>
 <body>
   <main class="app">
@@ -38,41 +39,55 @@
 
       <div id="hsLiveToday"></div>
 
-      <div class="cards" id="todayCards"></div>
+      <!-- v9: one next action + one quiet suggestion (backup / install / weekly summary) -->
+      <div id="v9Top"></div>
 
-      <a class="promo-card ai-promo" href="#ai">
+      <div class="cards compact" id="todayCards"></div>
+
+      <nav class="v9-sections" aria-label="Разделы">
+        <a class="chip" href="#workouts">🏋️ Тренировки</a>
+        <a class="chip" href="#food">🍽 Питание</a>
+        <a class="chip" href="#jaw">💪 Челюсть</a>
+        <a class="chip" href="#skin">🧴 Кожа</a>
+        <a class="chip" href="#week">📊 Итоги недели</a>
+        <a class="chip" href="#history">📒 История</a>
+        <a class="chip" href="#ai">🤖 ИИ</a>
+      </nav>
+
+      <a class="promo-card ai-promo" href="#ai" data-promo="ai">
         <span class="promo-ico" aria-hidden="true">🤖</span>
         <span class="promo-txt"><b>ИИ-ассистент <span class="pro-tag">Pro</span></b><small id="aiPromoSub">Спроси про свой сон, еду и тренировки</small></span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
       </a>
 
-      <a class="promo-card" href="#workouts">
+      <a class="promo-card" href="#workouts" data-promo="workouts">
         <span class="promo-ico" aria-hidden="true">🏋️</span>
         <span class="promo-txt"><b data-i18n="wk.promoTitle">Программа тренировок</b><small data-i18n="wk.promoSub">План по возрасту, весу и росту</small></span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
       </a>
 
-      <a class="promo-card food-promo" href="#food">
+      <a class="promo-card food-promo" href="#food" data-promo="food">
         <span class="promo-ico" aria-hidden="true">🍽</span>
         <span class="promo-txt"><b data-i18n="food.promo">Питание</b><small id="foodPromoSub"></small></span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
       </a>
 
       <div class="face-promos">
-        <a class="promo-card jaw-promo" href="#jaw">
+        <a class="promo-card jaw-promo" href="#jaw" data-promo="jaw">
           <span class="promo-ico" aria-hidden="true">💪</span>
           <span class="promo-txt"><b>Челюсть 30 дней</b><small id="jawPromoSub">Осанка, шея, меньше отёков</small></span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
         </a>
-        <a class="promo-card skin-promo" href="#skin">
+        <a class="promo-card skin-promo" href="#skin" data-promo="skin">
           <span class="promo-ico" aria-hidden="true">🧴</span>
           <span class="promo-txt"><b>Уход за кожей</b><small id="skinPromoSub">Тест на тип кожи · утро и вечер</small></span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
         </a>
       </div>
+      <button type="button" class="link-btn muted small v9-promos-off" id="v9PromosOff" data-v9="promos-off" hidden>Скрыть подсказки о разделах</button>
 
       <section class="card">
-        <div class="card-head"><h2 data-i18n="today.week">Неделя</h2></div>
+        <div class="card-head"><h2 data-i18n="today.week">Неделя</h2><a class="small" href="#week">Итоги недели →</a></div>
         <div class="week" id="weekGrid"></div>
       </section>
 
@@ -166,6 +181,11 @@
         <span class="promo-txt"><b>ИИ-ассистент <span class="pro-tag">Pro</span></b><small>Ответы по твоим данным · настройки</small></span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
       </a>
+      <div class="v9-sections v9-prof-sections" id="v9ProfSections">
+        <a class="chip" href="#jaw">💪 Челюсть 30 дней</a>
+        <a class="chip" href="#skin">🧴 Уход за кожей</a>
+        <a class="chip" href="#week">📊 Итоги недели</a>
+      </div>
       <a class="promo-card hs-promo" href="#history">
         <span class="promo-ico" aria-hidden="true">📒</span>
         <span class="promo-txt"><b>История</b><small>Тренировки по дням, подходы и веса, челюсть, уход</small></span>
@@ -203,19 +223,20 @@
         <div class="card-head"><h2 data-i18n="data.title">Мои данные</h2></div>
         <p class="muted small" data-i18n="data.hint">Все данные хранятся только на этом устройстве. Время от времени сохраняйте резервную копию.</p>
         <div class="btn-grid">
-          <button class="btn has-pro-tag" data-action="download"><span data-i18n="data.download">Скачать мои данные</span> <span class="pro-tag">Pro</span></button>
+          <button class="btn" data-action="download"><span data-i18n="data.download">Скачать мои данные</span></button>
           <button class="btn" data-action="import" data-i18n="data.import">Импорт JSON</button>
           <button class="btn has-pro-tag" data-action="csv"><span data-i18n="data.csv">Экспорт CSV</span> <span class="pro-tag">Pro</span></button>
           <button class="btn" data-action="demo" data-i18n="data.demo">Загрузить демо-данные</button>
           <button class="btn danger wide" data-action="clear" data-i18n="data.clear">Удалить все данные</button>
         </div>
         <input type="file" id="importFile" accept="application/json,.json" hidden>
+        <p class="muted small v9-backup-note" id="v9BackupNote"></p>
         <button class="btn install wide" id="installBtn" hidden data-i18n="data.install">Установить приложение</button>
         <p class="muted small ios-hint" id="iosHint" hidden data-i18n-html="data.iosHint">Чтобы установить на iPhone: <b>Поделиться</b> → <b>На экран «Домой»</b>.</p>
       </section>
 
 
-      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 8.1</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
+      <footer class="foot muted small"><span data-i18n="profile.about">Работает офлайн · данные только на этом устройстве</span> · <span class="ver">Версия 9.0</span> · <a href="https://t.me/FoZIKS7" target="_blank" rel="noopener">Поддержка</a></footer>
     </section>
 
     <!-- ============ FOOD (diary + coach tips, fully offline) ============ -->
@@ -338,6 +359,7 @@
     <section class="view" id="view-buy" data-view="buy" hidden><div id="buyRoot"></div></section>
     <section class="view" id="view-ai" data-view="ai" hidden><div id="aiRoot"></div></section>
     <section class="view" id="view-history" data-view="history" hidden><div id="historyRoot"></div></section>
+    <section class="view" id="view-week" data-view="week" hidden><div id="weekRoot"></div></section>
   </main>
 
   <!-- Bottom navigation -->
@@ -357,10 +379,6 @@
     <a class="tab" href="#food" data-tab="food">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2.5 1.5-3.5 4-3.5 8h3.5"/></svg>
       <span data-i18n="nav.food">Питание</span>
-    </a>
-    <a class="tab" href="#jaw" data-tab="face">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0v3c0 3.5-2.6 7-6 7s-6-3.5-6-7z"/><path d="M9.5 15.5q2.5 1.6 5 0"/><circle cx="9.5" cy="10.5" r=".6"/><circle cx="14.5" cy="10.5" r=".6"/></svg>
-      <span data-i18n="nav.face">Лицо</span>
     </a>
     <a class="tab" href="#profile" data-tab="profile">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
@@ -417,23 +435,24 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="license-data.js?v=8.1" defer></script>
-  <script src="pro.js?v=8.1" defer></script>
-  <script src="foods.js?v=8.1" defer></script>
-  <script src="exercises.js?v=8.1" defer></script>
-  <script src="tips.js?v=8.1" defer></script>
-  <script src="jaw-data.js?v=8.1" defer></script>
-  <script src="jaw.js?v=8.1" defer></script>
-  <script src="skin.js?v=8.1" defer></script>
-  <script src="history.js?v=8.1" defer></script>
-  <script src="ai-config.js?v=8.1" defer></script>
-  <script src="ai.js?v=8.1" defer></script>
-  <script src="app.js?v=8.1" defer></script>
+  <script src="license-data.js?v=9.0" defer></script>
+  <script src="pro.js?v=9.0" defer></script>
+  <script src="foods.js?v=9.0" defer></script>
+  <script src="exercises.js?v=9.0" defer></script>
+  <script src="tips.js?v=9.0" defer></script>
+  <script src="jaw-data.js?v=9.0" defer></script>
+  <script src="jaw.js?v=9.0" defer></script>
+  <script src="skin.js?v=9.0" defer></script>
+  <script src="history.js?v=9.0" defer></script>
+  <script src="v9.js?v=9.0" defer></script>
+  <script src="ai-config.js?v=9.0" defer></script>
+  <script src="ai.js?v=9.0" defer></script>
+  <script src="app.js?v=9.0" defer></script>
   <script>
     /* v8.1 auto-update: look for a new service worker on launch, when the app returns to the foreground and every
      * 30 min. The new worker activates at once (skipWaiting + clients.claim); then the page reloads silently if the
      * user has not touched it since launch/resume, otherwise a small «Доступно обновление — Обновить» banner appears. */
-    window.HT_VERSION = '8.1';
+    window.HT_VERSION = '9.0';
     (function () {
       if (!('serviceWorker' in navigator)) return;
       var sw = navigator.serviceWorker, hadController = !!sw.controller, reloading = false, reg = null;

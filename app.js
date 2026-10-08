@@ -54,13 +54,13 @@
       'sheet.saved': 'Сохранено: {v}', 'sheet.cleared': 'Запись удалена', 'sheet.pickMood': 'Выберите настроение',
       'day.lastNight': 'Прошлая ночь', 'day.tonight': 'Эта ночь', 'day.today': 'Сегодня', 'day.yesterday': 'Вчера',
       'add.title': 'Что записать?',
-      'profile.title': 'Профиль', 'profile.language': 'Язык', 'profile.height': 'Рост, см', 'profile.goals': 'Цели',
+      'profile.title': 'Профиль', 'profile.language': 'Язык', 'profile.height': 'Рост, см', 'profile.goals': 'Цели и что отслеживать',
       'profile.about': 'Работает офлайн · данные только на этом устройстве', 'profile.heightSaved': 'Рост сохранён',
       'data.title': 'Мои данные',
-      'data.hint': 'Все данные хранятся только на этом устройстве. Время от времени сохраняйте резервную копию.',
+      'data.hint': 'Все данные хранятся только в этом браузере, синхронизации нет. Раз в неделю скачивай копию — это бесплатно. Восстановить: «Импорт JSON».',
       'data.download': 'Скачать мои данные', 'data.import': 'Импорт JSON', 'data.csv': 'Экспорт CSV',
       'data.demo': 'Загрузить демо-данные', 'data.clear': 'Удалить все данные', 'data.install': 'Установить приложение',
-      'data.iosHint': 'Чтобы установить на iPhone: <b>Поделиться</b> → <b>На экран «Домой»</b>.',
+      'data.iosHint': 'Установи на iPhone: в Safari <b>Поделиться</b> → <b>На экран «Домой»</b>. Без этого Safari может удалить данные сайта, если не открывать его 7 дней.',
       'data.downloaded': 'Файл сохранён', 'data.csvDone': 'CSV экспортирован',
       'data.invalidJson': 'Это не JSON-файл', 'data.noValid': 'В файле нет подходящих записей',
       'data.confirmImport': 'Импортировать {n}?\nСовпадающие записи будут перезаписаны.',
@@ -670,6 +670,7 @@
   // TODAY view
   // ======================================================================
   var GOAL_IDS = ['sleep', 'water', 'steps', 'workout'];
+  function metricOn(id) { return !window.V9 || window.V9.goalOn(id); }
 
   function renderToday() {
     renderFoodPromo();
@@ -677,19 +678,23 @@
     var aiSub = document.getElementById('aiPromoSub');
     if (aiSub) aiSub.textContent = isPro() ? 'Спроси про свой сон, еду и тренировки' : 'Доступно в Про';
     el.todayDate.textContent = cap(today().toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' }));
-    var done = GOAL_IDS.filter(function (id) { var v = get(id, defaultKey(id)); return v !== null && meetsGoal(id, v); }).length;
+    // v9: only the goals the user switched on count for the ring
+    var gids = GOAL_IDS.filter(metricOn);
+    var done = gids.filter(function (id) { var v = get(id, defaultKey(id)); return v !== null && meetsGoal(id, v); }).length;
     el.todayScore.innerHTML = '';
+    el.todayScore.hidden = !gids.length;
     el.todayScore.appendChild(h('div', { class: 'score-text' }, [
-      h('b', { text: t('today.goalsOf', { n: done, m: GOAL_IDS.length }) }), t('today.goals')
+      h('b', { text: t('today.goalsOf', { n: done, m: gids.length }) }), t('today.goals')
     ]));
-    el.todayScore.appendChild(ring(46, 6, done / GOAL_IDS.length, 'grad'));
+    el.todayScore.appendChild(ring(46, 6, gids.length ? done / gids.length : 0, 'grad'));
 
     var frag = document.createDocumentFragment();
-    ORDER.forEach(function (id) { frag.appendChild(todayCard(id)); });
+    ORDER.filter(metricOn).forEach(function (id) { frag.appendChild(todayCard(id)); });
     el.todayCards.innerHTML = '';
     el.todayCards.appendChild(frag);
     renderWeek();
     el.todayEmpty.hidden = totalEntries() > 0;
+    if (window.V9) window.V9.renderTodayTop();
   }
 
   function valueNode(id, v) {
@@ -731,6 +736,8 @@
         if (settings.goals.weight) info += ' · ' + t('today.goal', { g: fmtNum(settings.goals.weight, 1) });
       } else info = t('today.tap');
       card.appendChild(h('div', { class: 'mcard-sub', text: info }));
+      var fc = window.V9Insights && window.V9Insights.forecastLine();
+      if (fc) card.appendChild(h('div', { class: 'mcard-sub v9-fc', text: fc }));
       return card;
     }
 
@@ -758,7 +765,7 @@
     days.forEach(function (d) {
       wg.appendChild(h('div', { class: 'wk-h' + (toKey(d) === toKey(t0) ? ' today' : ''), text: wd[(d.getDay() + 6) % 7] }));
     });
-    ORDER.forEach(function (id) {
+    ORDER.filter(metricOn).forEach(function (id) {
       var m = METRICS[id];
       wg.appendChild(h('div', { class: 'wk-name', text: m.icon + ' ' + t('m.' + id) }));
       days.forEach(function (d) {
@@ -1070,11 +1077,11 @@
     } else {
       out.push(stat(t('stats.goodDays'), vals.length ? String(Math.round(vals.filter(function (v) { return v >= 4; }).length / vals.length * 100)) : null, '%'));
     }
-    out.push(streakStat(t('stats.streak'), Math.min(7, currentStreak(id)), id));
+    out.push(streakStat(t('stats.streak'), currentStreak(id), id));   // v9: the current streak is free
     el.stats.innerHTML = '';
     out.forEach(function (n) { el.stats.appendChild(n); });
     var lock = h('div', { class: 'stats-lock' });
-    lock.innerHTML = '<div><b>' + (settings.lang === 'en' ? 'Year, all time, records & streaks' : 'Год, всё время, рекорды и серии') + ' ' + proBadge() + '</b><small>' +
+    lock.innerHTML = '<div><b>' + (settings.lang === 'en' ? 'Year, all time, records & streaks' : 'Год, всё время, рекорды и лучшая серия') + ' ' + proBadge() + '</b><small>' +
       (settings.lang === 'en' ? 'The free version shows the last 7 days.' : 'В бесплатной версии — статистика за последние 7 дней.') + '</small></div>' +
       '<a class="btn small primary" href="#buy/stats">' + (settings.lang === 'en' ? 'Unlock' : 'Открыть') + '</a>';
     el.stats.appendChild(lock);
@@ -1138,18 +1145,22 @@
     if (document.activeElement !== el.heightInput) el.heightInput.value = settings.height || '';
     if (document.activeElement !== el.ageInput) el.ageInput.value = settings.age || '';
     sexButtons(el.profileSex, true);
+    var bn = document.getElementById('v9BackupNote');
+    if (bn && window.V9) bn.textContent = window.V9.backupNote();
     el.goalsList.innerHTML = '';
+    // v9: every metric can be switched off (it then leaves the ring, the week grid and «Сегодня»)
     ORDER.forEach(function (id) {
-      var m = METRICS[id];
-      if (!m.goal) return;
+      var m = METRICS[id], on = metricOn(id);
       var g = settings.goals[id];
-      el.goalsList.appendChild(h('div', { class: 'goal-row' }, [
+      el.goalsList.appendChild(h('div', { class: 'goal-row v9-goal-row' + (on ? '' : ' off') }, [
+        h('button', { type: 'button', class: 'v9-switch', role: 'switch', 'aria-checked': String(on), 'data-v9': 'goal-on', 'data-id': id,
+          'aria-label': (on ? 'Выключить: ' : 'Включить: ') + t('m.' + id) }, [h('i')]),
         h('span', { class: 'row-lbl' }, [m.icon + ' ' + (id === 'weight' ? t('goal.weight') : t('m.' + id))]),
-        h('div', { class: 'stepper' }, [
+        m.goal && on ? h('div', { class: 'stepper' }, [
           h('button', { type: 'button', class: 'step-btn', 'data-goal': id, 'data-dir': -1, 'aria-label': '−', text: '−' }),
           h('output', { class: 'step-val', text: g === null ? '—' : fmtVal(id, g, true) }),
           h('button', { type: 'button', class: 'step-btn', 'data-goal': id, 'data-dir': 1, 'aria-label': '+', text: '+' })
-        ])
+        ]) : h('span', { class: 'muted small', text: on ? 'отслеживать' : 'выключено' })
       ]));
     });
   }
@@ -1177,7 +1188,7 @@
   function parseHash() {
     var parts = (location.hash || '').replace(/^#/, '').split('/');
     if (parts[0] === 'chat') parts[0] = 'food';   // old links / home-screen shortcuts
-    var view = ['today', 'trends', 'food', 'workouts', 'profile', 'jaw', 'skin', 'buy', 'ai', 'history'].indexOf(parts[0]) >= 0 ? parts[0] : 'today';
+    var view = ['today', 'trends', 'food', 'workouts', 'profile', 'jaw', 'skin', 'buy', 'ai', 'history', 'week', 'body'].indexOf(parts[0]) >= 0 ? parts[0] : 'today';
     state.sub = parts.slice(1);
     if (view === 'trends' && METRICS[parts[1]]) state.metric = parts[1];
     return view;
@@ -1190,7 +1201,9 @@
     var prevView = state.view, prevMetric = state.metric;
     state.view = parseHash();
     document.querySelectorAll('.view').forEach(function (v) { v.hidden = v.dataset.view !== state.view; });
-    var navView = (state.view === 'workouts' || state.view === 'history') ? 'food' : (state.view === 'jaw' || state.view === 'skin') ? 'face' : state.view === 'buy' ? 'profile' : state.view === 'ai' ? 'today' : state.view;
+    // v9: «Лицо» left the tab bar — face sections, weekly summary and the AI live under «Сегодня»
+    var navView = (state.view === 'workouts' || state.view === 'history') ? 'food' : (state.view === 'jaw' || state.view === 'skin' || state.view === 'week' || state.view === 'ai') ? 'today' : (state.view === 'buy' || state.view === 'body') ? 'profile' : state.view;
+    if (window.V9) window.V9.markSeen(state.view);
     if (state.view !== 'jaw' && window.JawModule) window.JawModule.leave();   // v5: stop a running jaw workout timer
     document.querySelectorAll('.tab[data-tab]').forEach(function (tb) {
       tb.classList.toggle('active', tb.dataset.tab === navView);
@@ -1210,6 +1223,8 @@
     else if (state.view === 'buy') { if (window.HTPro) window.HTPro.renderBuy(); }
     else if (state.view === 'ai') { if (window.AIModule) window.AIModule.render(); }
     else if (state.view === 'history') { if (window.HistoryModule) window.HistoryModule.render(state.sub || []); }
+    else if (state.view === 'week') { if (window.V9) window.V9.renderWeek(); }
+    else if (state.view === 'body') { if (window.V9Body) window.V9Body.render(); }
     else { renderProfile(); if (window.HTPro) window.HTPro.renderProfileCard(); }
     if (state.view === 'today') renderFacePromos();
     if (state.view === 'today' || state.view === 'workouts') {
@@ -1387,12 +1402,12 @@
   }
   function needPro(from) {
     if (isPro()) return false;
-    toast(settings.lang === 'en' ? 'Data export is a Pro feature' : 'Экспорт данных доступен в Про');
+    toast(settings.lang === 'en' ? 'CSV export is a Pro feature (the JSON backup is free)' : 'Таблица CSV — в Про. Резервная копия JSON бесплатна');
     location.hash = '#buy/' + from;
     return true;
   }
-  function exportJSON() {
-    if (needPro('export')) return;
+  // v9: the JSON backup is free (CSV, year charts and AI stay in Pro). opts.photos → include progress photos.
+  function exportJSON(opts) {
     var data = {};
     ORDER.forEach(function (id) { data[id] = {}; keys(id).forEach(function (k) { data[id][k] = get(id, k); }); });
     var payload = { app: 'health-tracker', version: 2, exportedAt: new Date().toISOString(), settings: settings, data: data, food: food,
@@ -1400,8 +1415,14 @@
       history: window.HistoryModule ? window.HistoryModule.exportData() : undefined,
       modules: { jaw: readJSON('health.jaw.v1', null), skin: readJSON('health.skin.v1', null) },
       userId: window.HTPro && window.HTPro.userId ? window.HTPro.userId() : undefined };
-    download('health-data-' + todayKey() + '.json', JSON.stringify(payload, null, 2), 'application/json');
-    toast(t('data.downloaded'));
+    var V = window.V9;
+    Promise.resolve(V ? V.exportAll(opts || {}) : undefined).then(function (v9) {
+      if (v9) payload.v9 = v9;
+      download('health-data-' + todayKey() + (opts && opts.photos ? '-photos' : '') + '.json', JSON.stringify(payload, null, opts && opts.photos ? 0 : 2), 'application/json');
+      if (V) V.backupDone();
+      toast(t('data.downloaded'));
+      if (state.view === 'today' || state.view === 'profile') render();
+    });
   }
   function exportCSV() {
     if (needPro('export')) return;
@@ -1431,7 +1452,8 @@
       var inFood = sanitizeFood(obj.food);
       var nFood = foodCount(inFood);
       var nHist = obj.history && Array.isArray(obj.history.workouts) ? obj.history.workouts.length : 0;
-      var n = ORDER.reduce(function (s, id) { return s + Object.keys(incoming[id]).length; }, 0) + nFood + nHist;
+      var nV9 = window.V9 && obj.v9 ? window.V9.countAll(obj.v9) : 0;   // v9: sleep times, measurements, favourites, photos
+      var n = ORDER.reduce(function (s, id) { return s + Object.keys(incoming[id]).length; }, 0) + nFood + nHist + nV9;
       var HP = window.HTPro, idNew = typeof obj.userId === 'string' && HP && HP.validId && HP.validId(obj.userId) && obj.userId !== HP.userId() ? obj.userId : null;
       var askId = function () { return idNew && confirm('Восстановить твой ID из копии: ' + idNew + '? (сейчас на этом устройстве ' + HP.userId() + '). Ключи, привязанные к ID из копии, снова заработают.'); };
       if (!n) {
@@ -1442,6 +1464,7 @@
       ORDER.forEach(function (id) { Object.keys(incoming[id]).forEach(function (k) { store.data[id][k] = incoming[id][k]; }); });
       if (nFood) { Object.keys(inFood).forEach(function (k) { food[k] = inFood[k]; }); saveFood(); }
       if (nHist && window.HistoryModule) window.HistoryModule.importData(obj.history);
+      if (window.V9 && obj.v9) window.V9.importAll(obj.v9);
       // v8.1: personal ID (keys can be bound to it) — restored from the backup, e.g. after reinstalling the app
       if (askId()) HP.setUserId(idNew);
       // jaw / skincare progress: only restored on a device that has none yet (never overwrites local progress)
@@ -2533,7 +2556,20 @@
       if (v <= 0) delete store.data.workout[k];
       else store.data.workout[k] = Math.min(m.max, Math.round(v));
       persist();
-    }
+    },
+    // v9: used by v9.js (next task, goals, weekly summary, sleep times, measurements, food speed)
+    dayMinutes: dayMinutes,
+    setMetric: function (id, k, v) {
+      var m = METRICS[id]; if (!m || !isValidKey(k)) return;
+      if (v === null || v === undefined || v === '') delete store.data[id][k];
+      else { v = Number(v); if (!isFinite(v)) return; store.data[id][k] = Math.max(m.min, Math.min(m.max, v)); }
+      persist();
+    },
+    rerender: function () { var y = window.scrollY; render(); window.scrollTo(0, y); },
+    view: function () { return state.view; },
+    saveFood: function () { saveFood(); },
+    uid: function () { return uid(); },
+    metric: function (id) { return METRICS[id] || null; }
   };
 
   // ======================================================================
@@ -2699,7 +2735,7 @@
 
   // PWA install
   var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); state.deferredInstall = e; el.installBtn.hidden = false; });
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); state.deferredInstall = e; el.installBtn.hidden = false; if (state.view === 'today' && window.V9) window.V9.renderTodayTop(); });
   el.installBtn.addEventListener('click', function () {
     var p = state.deferredInstall;
     if (!p) return;

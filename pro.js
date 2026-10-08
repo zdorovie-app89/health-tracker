@@ -85,7 +85,7 @@
     if (!naclPromise) {
       naclPromise = new Promise(function (res, rej) {
         var s = document.createElement('script');
-        s.src = 'vendor/nacl.min.js?v=8.1';
+        s.src = 'vendor/nacl.min.js?v=9.0';
         s.onload = function () { window.nacl && window.nacl.sign ? res(window.nacl) : rej(new Error('nacl')); };
         s.onerror = function () { naclPromise = null; rej(new Error('nacl load')); };
         document.head.appendChild(s);
@@ -329,7 +329,7 @@
   function giftModal(g) {
     modal('<div class="pro-gift-ic" aria-hidden="true">🎁</div><h2>Тебе подарили Про!</h2>' +
       '<p class="pro-gift-line">На <b>' + g.days + ' ' + plural(g.days, 'день', 'дня', 'дней') + '</b>' + (g.from ? ' от <b>' + esc(g.from) + '</b>' : '') + '</p>' +
-      '<p class="muted">Все функции открыты до ' + fmtDate(g.until) + ': ИИ-ассистент, вся программа для челюсти, персональный уход, статистика и экспорт. Приятного пользования ✨</p>');
+      '<p class="muted">Все функции открыты до ' + fmtDate(g.until) + ': ИИ-ассистент, вся программа для челюсти, персональный уход, статистика и таблица CSV. Приятного пользования ✨</p>');
     var c = document.querySelector('#proModal .pro-modal-card'); if (c) c.classList.add('pro-gift-card');
   }
   function statusLine(st) {
@@ -377,16 +377,29 @@
   function tariff() { return TARIFFS.filter(function (x) { return x.d === buySel; })[0]; }
   function hintText() { var t = tariff(); return 'Хочу Про на ' + t.w + ' (' + t.p + ' ₽/мес). Мой ID: ' + S.uid; }
   function giftHintText() { var t = tariff(); return 'Хочу подарить Про на ' + t.w + ' (' + t.p + ' ₽/мес). ID друга: ZD-______ (или нужна непривязанная ссылка-подарок). От кого: ______'; }
+  // v9: what stays free (grows with the v9 parts that are loaded)
+  function freeText() {
+    var a = ['все показатели и свои цели', '«Сегодня» с подсказкой следующего дела', 'текущая серия', 'итоги недели',
+      'резервная копия данных (JSON) и импорт'];
+    if (window.V9Insights) a.push('прогноз веса и наблюдения за 7 дней');
+    if (window.V9Sleep) a.push('сон по времени отбоя и подъёма, регулярность');
+    a.push('поиск и дневник еды' + (window.V9Food ? ' со штрихкодами, избранным и «Повторить вчера»' : ''));
+    a.push('тренировки с картинками' + (window.V9Workout ? ' и подсказкой следующего веса' : ''));
+    if (window.V9Body) a.push('замеры талии и шеи, фото «было / стало»');
+    if (window.V9Remind) a.push('напоминания');
+    a.push('неделя 1 программы для челюсти', 'базовый уход за кожей', 'статистика за 7 дней');
+    return a.join(', ');
+  }
   function renderBuy() {
     var root = document.getElementById('buyRoot'); if (!root) return;
     var st = status || compute(), l = statusLine(st);
     var feats = [
-      ['🤖', 'ИИ-ассистент', 'отвечает по твоим данным, знает КБЖУ продуктов; с облачным ИИ — свободный чат и распознавание еды по фото'],
+      ['🤖', 'ИИ-ассистент', 'отвечает по твоим данным, знает КБЖУ продуктов, комментирует итоги недели; с облачным ИИ — свободный чат и распознавание еды по фото'],
       ['📒', 'Графики прогресса по упражнениям', 'рост веса и повторов по каждому упражнению из истории тренировок'],
       ['💪', 'Вся программа «Челюсть 30 дней»', 'недели 2–4 и финал, а не только первая неделя'],
       ['🧴', 'Персональный уход за кожей', 'тест на тип кожи, кислоты и шаги под твою кожу'],
-      ['📈', 'Вся статистика и тренды', 'годовая карта, «всё время», рекорды и серии'],
-      ['💾', 'Экспорт данных', 'резервная копия JSON и таблица CSV']
+      ['📈', 'Вся статистика и тренды', 'годовая карта, «всё время», рекорды и лучшая серия' + (window.V9Insights ? '; наблюдения за 30 и 90 дней' : '')],
+      ['📊', 'Таблица CSV', 'все записи для Excel или Google Таблиц (резервная копия JSON — бесплатно)']
     ];
     root.innerHTML =
       '<header class="top top-back"><a class="icon-btn" href="#profile" aria-label="Назад"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a>' +
@@ -394,7 +407,7 @@
       '<section class="card pro-hero"><div class="pro-hero-star">★</div><div class="pro-status ' + l.cls + '"><b>Сейчас: ' + esc(l.t) + '</b><small>' + esc(l.s) + '</small></div></section>' +
       '<section class="card"><div class="card-head"><h2>Что входит в Про</h2></div><ul class="pro-feats">' +
       feats.map(function (f) { return '<li><span class="pro-fi">' + f[0] + '</span><span><b>' + f[1] + '</b><small>' + f[2] + '</small></span></li>'; }).join('') +
-      '</ul><p class="muted small">Бесплатно навсегда: сон и другие показатели, поиск и дневник еды, тренировки с картинками, неделя 1 программы для челюсти, базовый уход за кожей, статистика за 7 дней.</p></section>' +
+      '</ul><p class="muted small">Бесплатно навсегда: ' + freeText() + '.</p></section>' +
       '<section class="card"><div class="card-head"><h2>Тарифы</h2><span class="muted small">в месяц</span></div><div class="pro-tariffs" role="radiogroup">' +
       TARIFFS.map(function (t) {
         return '<button type="button" role="radio" aria-checked="' + (t.d === buySel) + '" class="pro-tariff' + (t.d === buySel ? ' on' : '') + '" data-tariff="' + t.d + '">' +

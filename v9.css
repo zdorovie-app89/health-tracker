@@ -1,0 +1,64 @@
+/* Здоровье v9 */
+.tabbar { grid-template-columns: repeat(5, 1fr); }   /* «Лицо» left the tab bar: 4 tabs + add */
+
+/* next action */
+.v9-next { position: relative; background: var(--grad-soft); border-color: rgba(167, 139, 250, .35); }
+.v9-next h2 { font-size: 18px; margin: 0; line-height: 1.2; }
+.v9-next p { margin: 3px 0 0; }
+.v9-next-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.v9-next-ic { font-size: 28px; line-height: 1; flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 14px; background: rgba(255, 255, 255, .07); }
+.v9-next .grow { flex: 1; min-width: 0; }
+.v9-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.v9-chips .chip { min-height: 42px; flex: 1; }
+.v9-bar { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; margin-bottom: 10px; }
+.v9-bar > i { display: block; height: 100%; background: var(--grad); border-radius: 999px; }
+.v9-water-btns .mini-btn { min-height: 44px; font-size: 15px; }
+.v9-mood button { font-size: 28px; min-height: 48px; filter: none; opacity: 1; }
+.btn.wide { width: 100%; }
+a.btn { text-decoration: none; color: inherit; }
+a.btn.primary { color: #fff; }
+
+/* quiet suggestion cards */
+.v9-sug { position: relative; padding-right: 40px; }
+.v9-sug h2 { font-size: 16px; margin: 0; }
+.v9-sug p { margin: 3px 0 0; }
+.v9-sug .v9-next-head { margin-bottom: 10px; }
+.v9-sug .v9-next-ic { font-size: 22px; width: 34px; height: 34px; }
+.v9-x { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 10px; border: 0; background: transparent; color: var(--muted); font-size: 16px; }
+.v9-x:active { background: rgba(255, 255, 255, .08); }
+
+/* compact metric cards */
+.cards.compact .mcard { min-height: 104px; padding: 11px 12px; gap: 6px; }
+.cards.compact .mcard-val { font-size: 24px; }
+.cards.compact .mood-row button { min-height: 32px; font-size: 19px; }
+.cards.compact .mini-btn { min-height: 32px; }
+.mcard-sub.v9-fc { color: var(--violet-l); font-size: 11.5px; line-height: 1.3; }
+
+/* sections row */
+.v9-sections { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 12px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.v9-sections::-webkit-scrollbar { display: none; }
+.v9-sections .chip { flex: none; min-height: 38px; padding: 0 13px; font-size: 13.5px; display: inline-flex; align-items: center; text-decoration: none; color: inherit; white-space: nowrap; }
+.v9-prof-sections { flex-wrap: wrap; overflow: visible; }
+.v9-promos-off { display: block; margin: -4px auto 12px; background: none; border: 0; text-decoration: underline; }
+
+/* goal switches */
+.v9-goal-row { display: flex; align-items: center; gap: 10px; }
+.v9-goal-row .row-lbl { flex: 1; }
+.v9-goal-row.off .row-lbl { color: var(--muted); }
+.v9-switch { flex: none; width: 44px; height: 26px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .08); position: relative; padding: 0; transition: background .2s; }
+.v9-switch i { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #cbd5e1; transition: transform .2s; }
+.v9-switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.v9-switch[aria-checked="true"] i { transform: translateX(18px); background: #fff; }
+
+/* weekly summary */
+.v9-weeknav { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.v9-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.v9-tile { background: rgba(255, 255, 255, .045); border: 1px solid var(--line); border-radius: 14px; padding: 10px 11px; display: flex; flex-direction: column; gap: 3px; }
+.v9-tile-l { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.v9-tile b { font-size: 21px; font-variant-numeric: tabular-nums; }
+.v9-tile small { font-size: 11.5px; color: var(--muted); line-height: 1.3; }
+.v9-tile small.v9-cmp { color: #c4b5fd; }
+.v9-tile small.v9-cmp.up { color: #86efac; }
+.v9-tile small.v9-cmp.down { color: #fda4af; }
+.v9-ai-week .btn { margin-top: 4px; }
+.v9-backup-note:empty { display: none; }
